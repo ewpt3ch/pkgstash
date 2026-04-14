@@ -1,5 +1,5 @@
-~- basic file server that fulfills pacman api~
-~- fetch requested files from mirror~
+- ~basic file server that fulfills pacman api~
+- ~fetch requested files from mirror~
 - DB sync from mirror
 - Basic testing for internal/cache
 - Timer/sync schedule in main
