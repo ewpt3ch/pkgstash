@@ -1,9 +1,10 @@
-- ~basic file server that fulfills pacman api~
-- ~fetch requested files from mirror~
-- ~DB sync from mirror~
 - Basic testing for internal/cache
-- Config file and import
+- add cli option for config location
 - Complete testing
 - Deployment(PKGBUILD, systemd, bootstrap script?, systemd sync timer)
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
 - Build server/tool
+- ~basic file server that fulfills pacman api~
+- ~fetch requested files from mirror~
+- ~DB sync from mirror~
+- ~Config file and import~
