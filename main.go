@@ -13,7 +13,10 @@ type Server struct {
 }
 
 func main() {
-	cfg := NewConfig()
+	cfg, err := ReadConfig("/home/ewpt3ch/dev/pacman-cache-server/tmprepo/app.config.toml")
+	if err != nil {
+		log.Fatal(err)
+	}
 	c := cache.NewCache(cfg.MirrorRoot, cfg.MirrorURL)
 	srv := &Server{cfg: cfg, c: c}
 
