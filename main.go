@@ -19,6 +19,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{repo}/os/{arch}/{file}", srv.handlePackage)
+	mux.HandleFunc("POST /api/refresh", srv.handlerRefresh)
 
 	if err := srv.c.Refresh(); err != nil {
 		log.Fatal(err)
