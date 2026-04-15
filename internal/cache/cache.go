@@ -3,24 +3,27 @@ package cache
 import (
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"golang.org/x/sync/singleflight"
 )
 
 type Cache struct {
-	repo      string
-	mirrorURL string
-	sf        singleflight.Group
+	localRoot     string
+	mirrorURL     string
+	mirroredRepos []string
+	sf            singleflight.Group //prevents duplicate downloads
+	mu            sync.Mutex
 }
 
-func NewCache(repo string, mirrorURL string) *Cache {
+func NewCache(localRoot string, mirrorURL string) *Cache {
 	return &Cache{
-		repo:      repo,
-		mirrorURL: mirrorURL,
+		localRoot:     localRoot,
+		mirrorURL:     mirrorURL,
+		mirroredRepos: []string{"core", "extra"},
 	}
 }
 
@@ -39,12 +42,12 @@ func (e *UpstreamError) Error() string {
 	return fmt.Sprintf("upstream returned %d", e.StatusCode)
 }
 
-func (c *Cache) fetch(pkgPath string) error {
-	// pkgPath is relative to the repo or mirror root
-	tempPkgPath := pkgPath + ".tmp"
-	tempPkgName := filepath.Join(c.repo, tempPkgPath) //full tmp write path
-	outPkg := filepath.Join(c.repo, pkgPath)
-	pkgURL := c.mirrorURL + pkgPath
+func (c *Cache) fetch(pkgName string) error {
+	// pkgName is relative to the localRoot
+	tempPkgName := pkgName + ".tmp"
+	tempPkgPath := filepath.Join(c.localRoot, tempPkgName) //full tmp write path
+	outPkg := filepath.Join(c.localRoot, pkgName)
+	pkgURL := c.mirrorURL + pkgName
 
 	resp, err := http.Get(pkgURL)
 	if err != nil {
@@ -56,7 +59,7 @@ func (c *Cache) fetch(pkgPath string) error {
 		return &UpstreamError{StatusCode: resp.StatusCode}
 	}
 
-	outFile, err := os.Create(tempPkgName)
+	outFile, err := os.Create(tempPkgPath)
 	if err != nil {
 		return err
 	}
@@ -64,12 +67,12 @@ func (c *Cache) fetch(pkgPath string) error {
 
 	_, err = io.Copy(outFile, resp.Body)
 	if err != nil {
-		os.Remove(tempPkgName)
+		os.Remove(tempPkgPath)
 		return err
 	}
 
-	if err := os.Rename(tempPkgName, outPkg); err != nil {
-		os.Remove(tempPkgName)
+	if err := os.Rename(tempPkgPath, outPkg); err != nil {
+		os.Remove(tempPkgPath)
 		return err
 	}
 	return nil
