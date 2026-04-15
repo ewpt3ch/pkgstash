@@ -15,10 +15,10 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 	repo := req.PathValue("repo")
 	arch := req.PathValue("arch")
 	file := req.PathValue("file")
-	repoPath := filepath.Join(repo, "os", arch, file)   //path from mirror root to pkg or db file
-	pkgPath := filepath.Join(s.cfg.CacheRoot, repoPath) //absolute path for local read of the file
+	repoPath := filepath.Join(repo, "os", arch, file)     //path from mirror root to pkg or db file
+	cachePath := filepath.Join(s.cfg.CacheRoot, repoPath) //absolute path for local read of the file
 
-	if _, err := os.Stat(pkgPath); err != nil {
+	if _, err := os.Stat(cachePath); err != nil {
 		err = s.c.Fetch(repoPath)
 		if err != nil {
 			var upstreamErr *cache.UpstreamError
@@ -31,5 +31,5 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	http.ServeFile(w, req, pkgPath)
+	http.ServeFile(w, req, cachePath)
 }

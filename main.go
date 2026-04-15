@@ -17,6 +17,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	c := cache.NewCache(cfg.CacheRoot, cfg.MirrorURL)
 	srv := &Server{cfg: cfg, c: c}
 

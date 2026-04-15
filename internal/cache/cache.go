@@ -12,16 +12,16 @@ import (
 )
 
 type Cache struct {
-	localRoot     string
+	cacheRoot     string
 	mirrorURL     string
 	mirroredRepos []string
 	sf            singleflight.Group //prevents duplicate downloads
 	mu            sync.Mutex
 }
 
-func NewCache(localRoot string, mirrorURL string) *Cache {
+func NewCache(cacheRoot string, mirrorURL string) *Cache {
 	return &Cache{
-		localRoot:     localRoot,
+		cacheRoot:     cacheRoot,
 		mirrorURL:     mirrorURL,
 		mirroredRepos: []string{"core", "extra"},
 	}
@@ -44,9 +44,10 @@ func (e *UpstreamError) Error() string {
 
 func (c *Cache) fetch(pkgName string) error {
 	// pkgName is relative to the localRoot
+	// ie pkgName includes /{repo}/os/{arch}/ and the actual name linux-x.x.x.pkg.tar.zst
 	tempPkgName := pkgName + ".tmp"
-	tempPkgPath := filepath.Join(c.localRoot, tempPkgName) //full tmp write path
-	outPkg := filepath.Join(c.localRoot, pkgName)
+	tempPkgPath := filepath.Join(c.cacheRoot, tempPkgName) //full tmp write path
+	outPkg := filepath.Join(c.cacheRoot, pkgName)
 	pkgURL := c.mirrorURL + pkgName
 
 	resp, err := http.Get(pkgURL)
