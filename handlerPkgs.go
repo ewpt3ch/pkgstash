@@ -15,8 +15,8 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 	repo := req.PathValue("repo")
 	arch := req.PathValue("arch")
 	file := req.PathValue("file")
-	repoPath := filepath.Join(repo, "os", arch, file)    //path from mirror root to pkg or db file
-	pkgPath := filepath.Join(s.cfg.MirrorRoot, repoPath) //absolute path for local read of the file
+	repoPath := filepath.Join(repo, "os", arch, file)   //path from mirror root to pkg or db file
+	pkgPath := filepath.Join(s.cfg.CacheRoot, repoPath) //absolute path for local read of the file
 
 	if _, err := os.Stat(pkgPath); err != nil {
 		err = s.c.Fetch(repoPath)
