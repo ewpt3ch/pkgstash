@@ -3,10 +3,12 @@ package cache
 import (
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"golang.org/x/sync/singleflight"
 )
@@ -17,13 +19,25 @@ type Cache struct {
 	mirroredRepos []string
 	sf            singleflight.Group //prevents duplicate downloads
 	mu            sync.Mutex
+	client        http.Client
 }
 
 func NewCache(cacheRoot string, mirrorURL string) *Cache {
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout: 5 * time.Second,
+		}).DialContext,
+		ResponseHeaderTimeout: 10 * time.Second,
+	}
+
 	return &Cache{
 		cacheRoot:     cacheRoot,
 		mirrorURL:     mirrorURL,
 		mirroredRepos: []string{"core", "extra"},
+		client: http.Client{
+			Timeout:   15 * time.Second,
+			Transport: transport,
+		},
 	}
 }
 
@@ -50,7 +64,7 @@ func (c *Cache) fetch(pkgName string) error {
 	outPkg := filepath.Join(c.cacheRoot, pkgName)
 	pkgURL := c.mirrorURL + pkgName
 
-	resp, err := http.Get(pkgURL)
+	resp, err := c.client.Get(pkgURL)
 	if err != nil {
 		return err
 	}

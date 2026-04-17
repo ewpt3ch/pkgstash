@@ -2,12 +2,14 @@ package cache
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func newTestServer(t *testing.T, handler http.HandlerFunc) *httptest.Server {
@@ -44,5 +46,63 @@ func TestFetchFileExists(t *testing.T) {
 	}
 	if !bytes.Equal(data, []byte(expected)) {
 		t.Errorf("expected file to contain %s got %s", expected, data)
+	}
+}
+
+func TestFetchNotFound(t *testing.T) {
+	svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	c := newTestCache(t, svr.URL+"/")
+
+	err := c.Fetch("fakefile")
+	var upstreamErr *UpstreamError
+	if !errors.As(err, &upstreamErr) {
+		t.Fatalf("expected UpstreamError fot %v", err)
+	}
+	if upstreamErr.StatusCode != http.StatusNotFound {
+		t.Errorf("expected 404 got %d", upstreamErr.StatusCode)
+	}
+}
+
+func TestFetchSrvError(t *testing.T) {
+	svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+
+	c := newTestCache(t, svr.URL+"/")
+
+	err := c.Fetch("fakefile")
+	var upstreamErr *UpstreamError
+	if !errors.As(err, &upstreamErr) {
+		t.Fatalf("expected UpstreamError fot %v", err)
+	}
+	if upstreamErr.StatusCode != http.StatusInternalServerError {
+		t.Errorf("expected 500 got %d", upstreamErr.StatusCode)
+	}
+}
+
+func TestFetchSrvDead(t *testing.T) {
+	svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-time.After(60 * time.Second):
+			fmt.Fprint(w, "too late")
+		}
+	}))
+	defer svr.Close()
+
+	c := newTestCache(t, svr.URL+"/")
+
+	err := c.Fetch("fakefile")
+	if err == nil {
+		t.Fatal("expected err got nil")
+	}
+
+	var upstreamErr *UpstreamError
+	if errors.As(err, &upstreamErr) {
+		t.Error("expected network error not UpstreamError")
 	}
 }

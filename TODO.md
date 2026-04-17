@@ -1,9 +1,11 @@
-- Basic testing for internal/cache
+- Basic config Testing
+- Add chi for mux
 - add cli option for config location
 - Complete testing
 - Deployment(PKGBUILD, systemd, bootstrap script?, systemd sync timer)
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
 - Build server/tool
+- ~Basic testing for internal/cache~
 - ~basic file server that fulfills pacman api~
 - ~fetch requested files from mirror~
 - ~DB sync from mirror~
