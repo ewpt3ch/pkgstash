@@ -1,0 +1,9 @@
+[Unit]
+Description=Refresh pkgstash db files
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

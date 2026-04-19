@@ -1,0 +1,6 @@
+cache_root = "/home/ewpt3ch/dev/pacman-cache-server/tmprepo"
+mirror_url  = "https://us.mirrors.cicku.me/archlinux/"
+port        = "8090"
+
+[auth]
+token = "FakeToken"

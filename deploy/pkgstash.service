@@ -1,0 +1,15 @@
+[Unit]
+Description=Sparse caching arch linux mirror
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/pkgstash
+User=pkgstash
+Group=pkgstash
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
