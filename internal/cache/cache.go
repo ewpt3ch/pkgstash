@@ -33,7 +33,7 @@ func NewCache(cacheRoot string, mirrorURL string) *Cache {
 	return &Cache{
 		cacheRoot:     cacheRoot,
 		mirrorURL:     mirrorURL,
-		mirroredRepos: []string{"core", "extra"},
+		mirroredRepos: []string{"core", "extra", "multilib"},
 		client: http.Client{
 			Timeout:   15 * time.Second,
 			Transport: transport,
