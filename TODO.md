@@ -2,8 +2,9 @@
 - Add chi for mux
 - add cli option for config location
 - Complete testing
-- Deployment(PKGBUILD, systemd, bootstrap script?, systemd sync timer)
+- Deployment(PKGBUILD, bootstrap script?)
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
+- ~Deployment(systemd, systemd.timer)~
 - Build server/tool
 - ~Basic testing for internal/cache~
 - ~basic file server that fulfills pacman api~
