@@ -1,11 +1,13 @@
+- Solve timeout issue large pkgs, maybe stream
+- Add better logging for errors, filename more deatail
 - Basic config Testing
 - Add chi for mux
 - add cli option for config location
 - Complete testing
 - Deployment(PKGBUILD, bootstrap script?)
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
-- ~Deployment(systemd, systemd.timer)~
 - Build server/tool
+- ~Deployment(systemd, systemd.timer)~
 - ~Basic testing for internal/cache~
 - ~basic file server that fulfills pacman api~
 - ~fetch requested files from mirror~
