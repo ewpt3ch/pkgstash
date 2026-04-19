@@ -17,6 +17,7 @@ type AuthConfig struct {
 	Token string `toml:"token"`
 }
 
+/* Function kept for reference for future logic
 func NewConfig() *Config {
 	return &Config{
 		CacheRoot: "/home/ewpt3ch/dev/pacman-cache-server/tmprepo",
@@ -25,6 +26,7 @@ func NewConfig() *Config {
 		Auth:      AuthConfig{Token: "FakeToken"},
 	}
 }
+*/
 
 func ReadConfig(path string) (*Config, error) {
 

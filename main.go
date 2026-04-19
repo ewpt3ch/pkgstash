@@ -13,7 +13,7 @@ type Server struct {
 }
 
 func main() {
-	cfg, err := ReadConfig("/home/ewpt3ch/dev/pacman-cache-server/tmprepo/app.config.toml")
+	cfg, err := ReadConfig("/etc/pkgstash/pkgstash.toml")
 	if err != nil {
 		log.Fatal(err)
 	}

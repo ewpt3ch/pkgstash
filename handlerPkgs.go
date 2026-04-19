@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -23,12 +24,15 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			var upstreamErr *cache.UpstreamError
 			if errors.As(err, &upstreamErr) {
+				log.Printf("upstream error: %v", err)
 				http.Error(w, "Not found upstream", upstreamErr.StatusCode)
 				return
 			}
+			log.Printf("fetch error: %v", err)
 			http.Error(w, "Failed to fetch from upstream", http.StatusBadGateway)
-
+			return
 		}
+
 	}
 
 	http.ServeFile(w, req, cachePath)
