@@ -22,7 +22,7 @@ type Cache struct {
 	client        http.Client
 }
 
-func NewCache(cacheRoot string, mirrorURL string) *Cache {
+func NewCache(cacheRoot string, mirrorURL string, mirroredRepos []string) *Cache {
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout: 5 * time.Second,
@@ -33,7 +33,7 @@ func NewCache(cacheRoot string, mirrorURL string) *Cache {
 	return &Cache{
 		cacheRoot:     cacheRoot,
 		mirrorURL:     mirrorURL,
-		mirroredRepos: []string{"core", "extra", "multilib"},
+		mirroredRepos: mirroredRepos,
 		client: http.Client{
 			Timeout:   15 * time.Second,
 			Transport: transport,

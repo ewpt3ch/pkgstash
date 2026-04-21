@@ -7,10 +7,11 @@ import (
 )
 
 type Config struct {
-	CacheRoot string     `toml:"cache_root"`
-	MirrorURL string     `toml:"mirror_url"`
-	Port      string     `toml:"port"`
-	Auth      AuthConfig `toml:"auth"`
+	CacheRoot     string     `toml:"cache_root"`
+	MirrorURL     string     `toml:"mirror_url"`
+	MirroredRepos []string   `toml:"mirrored_repos"`
+	Port          string     `toml:"port"`
+	Auth          AuthConfig `toml:"auth"`
 }
 
 type AuthConfig struct {

@@ -1,5 +1,8 @@
 cache_root = "/home/ewpt3ch/dev/pacman-cache-server/tmprepo"
 mirror_url  = "https://us.mirrors.cicku.me/archlinux/"
+# array of upstream repos this server caches see pacman.conf
+# or pacman docs for more info <core, extra, multilib>
+mirrored_repos = ["core", "extra"]
 port        = "8090"
 
 [auth]

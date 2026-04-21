@@ -28,7 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	c := cache.NewCache(cfg.CacheRoot, cfg.MirrorURL)
+	c := cache.NewCache(cfg.CacheRoot, cfg.MirrorURL, cfg.MirroredRepos)
 	srv := &Server{cfg: cfg, c: c}
 
 	mux := http.NewServeMux()
@@ -44,6 +44,7 @@ func main() {
 		Handler: mux,
 	}
 
+	log.Printf("serving pkgstash root: %v on port: %v", cfg.CacheRoot, cfg.Port)
 	log.Fatal(httpServe.ListenAndServe())
 
 }
