@@ -1,11 +1,11 @@
 - Solve timeout issue large pkgs, maybe stream
 - Add better logging for errors, filename more deatail
-- Basic config Testing
 - Add chi for mux
 - Complete testing
 - Deployment(PKGBUILD, bootstrap script?)
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
 - Build server/tool
+- ~Basic config Testing~
 - ~flag for loading non default config~
 - ~add cli option for config location~
 - ~Deployment(systemd, systemd.timer)~
