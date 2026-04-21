@@ -8,7 +8,7 @@ func (c *Cache) Refresh() error {
 	}
 	defer c.mu.Unlock()
 
-	for _, repo := range c.mirroredRepos {
+	for _, repo := range c.cfg.mirroredRepos {
 		if err := c.refreshDB(repo); err != nil {
 			return err
 		}

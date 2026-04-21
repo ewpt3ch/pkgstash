@@ -16,29 +16,43 @@ import (
 )
 
 type Cache struct {
-	cacheRoot     string
-	mirrorURLs    []string
-	mirroredRepos []string
-	mirrorIdx     atomic.Uint32
-	sf            singleflight.Group //prevents duplicate downloads
-	mu            sync.Mutex
-	client        http.Client
+	cfg       CacheConfig
+	mirrorIdx atomic.Uint32
+	sf        singleflight.Group //prevents duplicate downloads
+	mu        sync.Mutex
+	client    http.Client
+}
+
+type CacheConfig struct {
+	cacheRoot             string
+	mirrorURLs            []string
+	mirroredRepos         []string
+	DialTimeout           time.Duration
+	ResponseHeaderTimeout time.Duration
+	ClientTimeout         time.Duration
 }
 
 func NewCache(cacheRoot string, mirrorURLs []string, mirroredRepos []string) *Cache {
+	cfg := CacheConfig{
+		cacheRoot:             cacheRoot,
+		mirrorURLs:            mirrorURLs,
+		mirroredRepos:         mirroredRepos,
+		DialTimeout:           5 * time.Second,
+		ResponseHeaderTimeout: 10 * time.Second,
+		ClientTimeout:         15 * time.Second,
+	}
+
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
-			Timeout: 5 * time.Second,
+			Timeout: cfg.DialTimeout,
 		}).DialContext,
-		ResponseHeaderTimeout: 10 * time.Second,
+		ResponseHeaderTimeout: cfg.ResponseHeaderTimeout,
 	}
 
 	return &Cache{
-		cacheRoot:     cacheRoot,
-		mirrorURLs:    mirrorURLs,
-		mirroredRepos: mirroredRepos,
+		cfg: cfg,
 		client: http.Client{
-			Timeout:   15 * time.Second,
+			Timeout:   cfg.ClientTimeout,
 			Transport: transport,
 		},
 	}
@@ -65,8 +79,8 @@ func (c *Cache) fetch(pkgName string) error {
 	// pkgName is relative to the localRoot
 	// ie pkgName includes /{repo}/os/{arch}/ and the actual name linux-x.x.x.pkg.tar.zst
 	tempPkgName := pkgName + ".tmp"
-	tempPkgPath := filepath.Join(c.cacheRoot, tempPkgName) //full tmp write path
-	outPkg := filepath.Join(c.cacheRoot, pkgName)
+	tempPkgPath := filepath.Join(c.cfg.cacheRoot, tempPkgName) //full tmp write path
+	outPkg := filepath.Join(c.cfg.cacheRoot, pkgName)
 	pkgURL := c.nextMirror() + pkgName
 
 	log.Printf("fetching %v", pkgURL)
@@ -102,5 +116,5 @@ func (c *Cache) fetch(pkgName string) error {
 
 func (c *Cache) nextMirror() string {
 	idx := c.mirrorIdx.Add(1) - 1
-	return c.mirrorURLs[idx%uint32(len(c.mirrorURLs))]
+	return c.cfg.mirrorURLs[idx%uint32(len(c.cfg.mirrorURLs))]
 }

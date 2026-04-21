@@ -22,7 +22,9 @@ func newTestServer(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 func newTestCache(t *testing.T, mirrorURL []string) *Cache {
 	t.Helper()
 	mirroredRepos := []string{"core", "extra"}
-	return NewCache(t.TempDir(), mirrorURL, mirroredRepos)
+	c := NewCache(t.TempDir(), mirrorURL, mirroredRepos)
+	c.client.Timeout = 500 * time.Millisecond
+	return c
 }
 
 func TestFetchFileExists(t *testing.T) {
@@ -39,7 +41,7 @@ func TestFetchFileExists(t *testing.T) {
 		t.Fatalf("Fetch failed %v", err)
 	}
 
-	fakefilepath := filepath.Join(c.cacheRoot, "fakefile")
+	fakefilepath := filepath.Join(c.cfg.cacheRoot, "fakefile")
 
 	data, err := os.ReadFile(fakefilepath)
 	if err != nil {
