@@ -3,11 +3,13 @@ package cache
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/sync/singleflight"
@@ -15,14 +17,15 @@ import (
 
 type Cache struct {
 	cacheRoot     string
-	mirrorURL     string
+	mirrorURLs    []string
 	mirroredRepos []string
+	mirrorIdx     atomic.Uint32
 	sf            singleflight.Group //prevents duplicate downloads
 	mu            sync.Mutex
 	client        http.Client
 }
 
-func NewCache(cacheRoot string, mirrorURL string, mirroredRepos []string) *Cache {
+func NewCache(cacheRoot string, mirrorURLs []string, mirroredRepos []string) *Cache {
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout: 5 * time.Second,
@@ -32,7 +35,7 @@ func NewCache(cacheRoot string, mirrorURL string, mirroredRepos []string) *Cache
 
 	return &Cache{
 		cacheRoot:     cacheRoot,
-		mirrorURL:     mirrorURL,
+		mirrorURLs:    mirrorURLs,
 		mirroredRepos: mirroredRepos,
 		client: http.Client{
 			Timeout:   15 * time.Second,
@@ -42,7 +45,9 @@ func NewCache(cacheRoot string, mirrorURL string, mirroredRepos []string) *Cache
 }
 
 func (c *Cache) Fetch(pkgPath string) error {
+	log.Printf("pkgPath from Fetch %v", pkgPath)
 	_, err, _ := c.sf.Do(pkgPath, func() (any, error) {
+		log.Print("calling fetch")
 		return nil, c.fetch(pkgPath)
 	})
 	return err
@@ -62,7 +67,9 @@ func (c *Cache) fetch(pkgName string) error {
 	tempPkgName := pkgName + ".tmp"
 	tempPkgPath := filepath.Join(c.cacheRoot, tempPkgName) //full tmp write path
 	outPkg := filepath.Join(c.cacheRoot, pkgName)
-	pkgURL := c.mirrorURL + pkgName
+	pkgURL := c.nextMirror() + pkgName
+
+	log.Printf("fetching %v", pkgURL)
 
 	resp, err := c.client.Get(pkgURL)
 	if err != nil {
@@ -91,4 +98,9 @@ func (c *Cache) fetch(pkgName string) error {
 		return err
 	}
 	return nil
+}
+
+func (c *Cache) nextMirror() string {
+	idx := c.mirrorIdx.Add(1) - 1
+	return c.mirrorURLs[idx%uint32(len(c.mirrorURLs))]
 }

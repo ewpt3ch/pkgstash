@@ -28,7 +28,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	c := cache.NewCache(cfg.CacheRoot, cfg.MirrorURL, cfg.MirroredRepos)
+	c := cache.NewCache(cfg.CacheRoot, cfg.MirrorURLs, cfg.MirroredRepos)
 	srv := &Server{cfg: cfg, c: c}
 
 	mux := http.NewServeMux()

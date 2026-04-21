@@ -8,7 +8,7 @@ import (
 
 type Config struct {
 	CacheRoot     string     `toml:"cache_root"`
-	MirrorURL     string     `toml:"mirror_url"`
+	MirrorURLs    []string   `toml:"mirror_url"`
 	MirroredRepos []string   `toml:"mirrored_repos"`
 	Port          string     `toml:"port"`
 	Auth          AuthConfig `toml:"auth"`
@@ -22,7 +22,7 @@ type AuthConfig struct {
 func NewConfig() *Config {
 	return &Config{
 		CacheRoot: "/home/ewpt3ch/dev/pacman-cache-server/tmprepo",
-		MirrorURL: "https://us.mirrors.cicku.me/archlinux/",
+		MirrorURLs: "https://us.mirrors.cicku.me/archlinux/",
 		Port:      "8090",
 		Auth:      AuthConfig{Token: "FakeToken"},
 	}
@@ -48,8 +48,8 @@ func (c *Config) validate() error {
 	if c.CacheRoot == "" {
 		return fmt.Errorf("cache root is required")
 	}
-	if c.MirrorURL == "" {
-		return fmt.Errorf("mirror url is required")
+	if len(c.MirrorURLs) == 0 {
+		return fmt.Errorf("at least one mirror is required")
 	}
 	if c.Port == "" {
 		c.Port = "8090"
