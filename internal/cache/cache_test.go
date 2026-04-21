@@ -19,9 +19,10 @@ func newTestServer(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 	return svr
 }
 
-func newTestCache(t *testing.T, mirrorURL string) *Cache {
+func newTestCache(t *testing.T, mirrorURL []string) *Cache {
 	t.Helper()
-	return NewCache(t.TempDir(), mirrorURL)
+	mirroredRepos := []string{"core", "extra"}
+	return NewCache(t.TempDir(), mirrorURL, mirroredRepos)
 }
 
 func TestFetchFileExists(t *testing.T) {
@@ -31,7 +32,7 @@ func TestFetchFileExists(t *testing.T) {
 		fmt.Fprint(w, expected)
 	}))
 
-	c := newTestCache(t, svr.URL+"/")
+	c := newTestCache(t, []string{svr.URL + "/"})
 
 	err := c.Fetch("fakefile")
 	if err != nil {
@@ -54,7 +55,7 @@ func TestFetchNotFound(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 
-	c := newTestCache(t, svr.URL+"/")
+	c := newTestCache(t, []string{svr.URL + "/"})
 
 	err := c.Fetch("fakefile")
 	var upstreamErr *UpstreamError
@@ -71,7 +72,7 @@ func TestFetchSrvError(t *testing.T) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 
-	c := newTestCache(t, svr.URL+"/")
+	c := newTestCache(t, []string{svr.URL + "/"})
 
 	err := c.Fetch("fakefile")
 	var upstreamErr *UpstreamError
@@ -94,7 +95,7 @@ func TestFetchSrvDead(t *testing.T) {
 	}))
 	defer svr.Close()
 
-	c := newTestCache(t, svr.URL+"/")
+	c := newTestCache(t, []string{svr.URL + "/"})
 
 	err := c.Fetch("fakefile")
 	if err == nil {
