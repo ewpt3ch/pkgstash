@@ -8,7 +8,7 @@ import (
 
 type Config struct {
 	CacheRoot     string     `toml:"cache_root"`
-	MirrorURLs    []string   `toml:"mirror_url"`
+	MirrorURLs    []string   `toml:"mirror_urls"`
 	MirroredRepos []string   `toml:"mirrored_repos"`
 	Port          string     `toml:"port"`
 	Auth          AuthConfig `toml:"auth"`
