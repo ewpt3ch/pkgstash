@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
 
@@ -13,7 +14,16 @@ type Server struct {
 }
 
 func main() {
-	cfg, err := ReadConfig("/etc/pkgstash/pkgstash.toml")
+
+	// set config from flag if available
+	var configPath string
+	flag.StringVar(&configPath, "config", "", "path to config file")
+	flag.Parse()
+	if len(configPath) == 0 {
+		configPath = "/etc/pkgstash/pkgstash.toml"
+	}
+
+	cfg, err := ReadConfig(configPath)
 	if err != nil {
 		log.Fatal(err)
 	}

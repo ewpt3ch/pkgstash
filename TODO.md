@@ -7,6 +7,7 @@
 - Deployment(PKGBUILD, bootstrap script?)
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
 - Build server/tool
+- ~flag for loading non default config~
 - ~Deployment(systemd, systemd.timer)~
 - ~Basic testing for internal/cache~
 - ~basic file server that fulfills pacman api~
