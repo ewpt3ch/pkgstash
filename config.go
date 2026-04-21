@@ -51,8 +51,11 @@ func (c *Config) validate() error {
 	if len(c.MirrorURLs) == 0 {
 		return fmt.Errorf("at least one mirror is required")
 	}
+	if len(c.MirroredRepos) == 0 {
+		return fmt.Errorf("at least one repo is required")
+	}
 	if c.Port == "" {
-		c.Port = "8090"
+		return fmt.Errorf("port required")
 	}
 	if c.Auth.Token == "" {
 		return fmt.Errorf("auth token is required")
