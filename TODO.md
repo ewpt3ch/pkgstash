@@ -2,12 +2,12 @@
 - Add better logging for errors, filename more deatail
 - Basic config Testing
 - Add chi for mux
-- add cli option for config location
 - Complete testing
 - Deployment(PKGBUILD, bootstrap script?)
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
 - Build server/tool
 - ~flag for loading non default config~
+- ~add cli option for config location~
 - ~Deployment(systemd, systemd.timer)~
 - ~Basic testing for internal/cache~
 - ~basic file server that fulfills pacman api~
