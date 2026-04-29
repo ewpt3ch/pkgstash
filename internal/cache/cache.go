@@ -78,8 +78,11 @@ func (e *UpstreamError) Error() string {
 func (c *Cache) fetch(pkgName string) error {
 	// pkgName is relative to the localRoot
 	// ie pkgName includes /{repo}/os/{arch}/ and the actual name linux-x.x.x.pkg.tar.zst
+
 	tempPkgName := pkgName + ".tmp"
 	tempPkgPath := filepath.Join(c.cfg.cacheRoot, tempPkgName) //full tmp write path
+
+	// final file name and path
 	outPkg := filepath.Join(c.cfg.cacheRoot, pkgName)
 	pkgURL := c.nextMirror() + pkgName
 
@@ -95,6 +98,7 @@ func (c *Cache) fetch(pkgName string) error {
 		return &UpstreamError{StatusCode: resp.StatusCode}
 	}
 
+	// use a tmp file for the initial fetch in case it fails
 	outFile, err := os.Create(tempPkgPath)
 	if err != nil {
 		return err
@@ -107,6 +111,7 @@ func (c *Cache) fetch(pkgName string) error {
 		return err
 	}
 
+	// mv file to final location
 	if err := os.Rename(tempPkgPath, outPkg); err != nil {
 		os.Remove(tempPkgPath)
 		return err
