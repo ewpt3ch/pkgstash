@@ -27,6 +27,7 @@ type CacheConfig struct {
 	cacheRoot             string
 	mirrorURLs            []string
 	mirroredRepos         []string
+	userAgent             string
 	DialTimeout           time.Duration
 	ResponseHeaderTimeout time.Duration
 	ClientTimeout         time.Duration
@@ -37,6 +38,7 @@ func NewCache(cacheRoot string, mirrorURLs []string, mirroredRepos []string) *Ca
 		cacheRoot:             cacheRoot,
 		mirrorURLs:            mirrorURLs,
 		mirroredRepos:         mirroredRepos,
+		userAgent:             "pacman/7.1.0 (Linux x86_64) libalpm/16.0.1",
 		DialTimeout:           5 * time.Second,
 		ResponseHeaderTimeout: 10 * time.Second,
 		ClientTimeout:         15 * time.Second,
@@ -87,12 +89,22 @@ func (c *Cache) fetch(pkgName string) error {
 
 	// declare vars outside loop
 	var resp *http.Response
+	var req *http.Request
 	var err error
 	// fetch pkgs from mirror with retry logic
 	for range len(c.cfg.mirrorURLs) {
 		pkgURL := c.nextMirror() + pkgName
 		log.Printf("fetching %v", pkgURL)
-		resp, err = c.client.Get(pkgURL)
+
+		// set the user agent
+		req, err = http.NewRequest("GET", pkgURL, nil)
+		if err != nil {
+			log.Printf("failed to create request: %v", err)
+			return &UpstreamError{StatusCode: http.StatusInternalServerError}
+		}
+		req.Header.Set("User-Agent", c.cfg.userAgent)
+
+		resp, err = c.client.Do(req)
 		if err != nil {
 			log.Printf("error fetching %s: %v", pkgURL, err)
 			continue
