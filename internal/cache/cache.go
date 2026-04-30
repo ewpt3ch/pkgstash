@@ -84,17 +84,37 @@ func (c *Cache) fetch(pkgName string) error {
 
 	// final file name and path
 	outPkg := filepath.Join(c.cfg.cacheRoot, pkgName)
-	pkgURL := c.nextMirror() + pkgName
 
-	log.Printf("fetching %v", pkgURL)
-
-	resp, err := c.client.Get(pkgURL)
-	if err != nil {
-		return err
+	// declare vars outside loop
+	var resp *http.Response
+	var err error
+	// fetch pkgs from mirror with retry logic
+	for range len(c.cfg.mirrorURLs) {
+		pkgURL := c.nextMirror() + pkgName
+		log.Printf("fetching %v", pkgURL)
+		resp, err = c.client.Get(pkgURL)
+		if err != nil {
+			log.Printf("error fetching %s: %v", pkgURL, err)
+			continue
+		}
+		if resp.StatusCode == http.StatusOK {
+			break
+		}
+		log.Printf("retrying on code %v", resp.StatusCode)
+		resp.Body.Close()
+	}
+	if resp == nil {
+		return fmt.Errorf("all mirrors exhausted")
 	}
 	defer resp.Body.Close()
 
+	if err != nil {
+		log.Printf("exhauted all mirrors error: %v", err)
+		return err
+	}
+
 	if resp.StatusCode != http.StatusOK {
+		log.Printf("exhauted all mirrors %v", resp.StatusCode)
 		return &UpstreamError{StatusCode: resp.StatusCode}
 	}
 

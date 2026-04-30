@@ -6,11 +6,19 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gitea.ewpt3ch.dev/ewpt3ch/pkgstash/internal/cache"
 )
 
 func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
+
+	// most mirrors don't have a *db.sig so we 404 it here instead of spamming the mirror
+	if strings.HasSuffix(req.PathValue("file"), ".db.sig") {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	// build file paths from the request, they follow archlinux repo
 	// <mirrorroot>/[core, extra, etc]/os/[x86_64, arm, etc]/package.pkg.tar.zst[.sig]
 	repo := req.PathValue("repo")

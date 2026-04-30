@@ -19,10 +19,10 @@ func newTestServer(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 	return svr
 }
 
-func newTestCache(t *testing.T, mirrorURL []string) *Cache {
+func newTestCache(t *testing.T, mirrorURLs []string) *Cache {
 	t.Helper()
 	mirroredRepos := []string{"core", "extra"}
-	c := NewCache(t.TempDir(), mirrorURL, mirroredRepos)
+	c := NewCache(t.TempDir(), mirrorURLs, mirroredRepos)
 	c.client.Timeout = 500 * time.Millisecond
 	return c
 }
@@ -62,7 +62,7 @@ func TestFetchNotFound(t *testing.T) {
 	err := c.Fetch("fakefile")
 	var upstreamErr *UpstreamError
 	if !errors.As(err, &upstreamErr) {
-		t.Fatalf("expected UpstreamError fot %v", err)
+		t.Fatalf("expected UpstreamError got %v", err)
 	}
 	if upstreamErr.StatusCode != http.StatusNotFound {
 		t.Errorf("expected 404 got %d", upstreamErr.StatusCode)
@@ -107,5 +107,64 @@ func TestFetchSrvDead(t *testing.T) {
 	var upstreamErr *UpstreamError
 	if errors.As(err, &upstreamErr) {
 		t.Error("expected network error not UpstreamError")
+	}
+}
+
+func TestFetchRetryExists(t *testing.T) {
+	const expected = "This is fake file contents"
+
+	svr1 := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	svr2 := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, expected)
+	}))
+	fakeURLs := []string{
+		svr1.URL + "/",
+		svr2.URL + "/",
+	}
+
+	c := newTestCache(t, fakeURLs)
+
+	err := c.Fetch("fakefile")
+	if err != nil {
+		t.Fatalf("fetch failed: %v", err)
+	}
+
+	fakefilepath := filepath.Join(c.cfg.cacheRoot, "fakefile")
+	data, err := os.ReadFile(fakefilepath)
+	if err != nil {
+		t.Fatalf("error reading file back: %v", err)
+	}
+	if !bytes.Equal(data, []byte(expected)) {
+		t.Errorf("expected file to contain %s got %s", expected, data)
+	}
+}
+
+func TestFetchRetryNonExist(t *testing.T) {
+
+	svr1 := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	svr2 := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+
+	fakeURLs := []string{
+		svr1.URL + "/",
+		svr2.URL + "/",
+	}
+
+	c := newTestCache(t, fakeURLs)
+
+	err := c.Fetch("fakefile")
+	var upstreamErr *UpstreamError
+	if !errors.As(err, &upstreamErr) {
+		t.Errorf("expected UpstreamError got %v", err)
+	}
+	if upstreamErr.StatusCode != http.StatusNotFound {
+		t.Errorf("expected 404 got %d", upstreamErr.StatusCode)
 	}
 }
