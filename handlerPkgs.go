@@ -19,6 +19,9 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// record the useragent from requestor
+	log.Printf("Requestors UA: %s", req.Header.Get("User-Agent"))
+
 	// build file paths from the request, they follow archlinux repo
 	// <mirrorroot>/[core, extra, etc]/os/[x86_64, arm, etc]/package.pkg.tar.zst[.sig]
 	repo := req.PathValue("repo")
