@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"gitea.ewpt3ch.dev/ewpt3ch/pkgstash/internal/cache"
+	"github.com/ewpt3ch/pkgstash/internal/cache"
 )
 
 type Server struct {

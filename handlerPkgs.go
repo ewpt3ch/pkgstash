@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitea.ewpt3ch.dev/ewpt3ch/pkgstash/internal/cache"
+	"github.com/ewpt3ch/pkgstash/internal/cache"
 )
 
 func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
