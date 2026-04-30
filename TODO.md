@@ -1,7 +1,7 @@
 - ~add a UA to get client, some servers are 403 the default go client~
 - Add better logging for errors, filename more deatail
 - Solve timeout issue large pkgs, maybe stream
-- Move project to github as primary
+- ~Move project to github as primary~
 
 - Complete testing
 - Deployment(PKGBUILD, bootstrap script?)
