@@ -1,12 +1,15 @@
+- add a UA to get client, some servers are 403 the default go client
+- Add better logging for errors, filename more deatail
+- Solve timeout issue large pkgs, maybe stream
 - Move project to github as primary
 
-- Solve timeout issue large pkgs, maybe stream
-- Add better logging for errors, filename more deatail
-- Add chi for mux
 - Complete testing
 - Deployment(PKGBUILD, bootstrap script?)
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
+- clean cache of old files
+- Add chi for mux
 - Build server/tool
+- ~retry on failed fetch~
 - ~Basic config Testing~
 - ~flag for loading non default config~
 - ~add cli option for config location~
