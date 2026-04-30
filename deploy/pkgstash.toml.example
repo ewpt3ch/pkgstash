@@ -1,6 +1,5 @@
-env_file = "/etc/pkgstash/pkgstash.env"
-cache_root = "/srv/pkgstash"
-mirror_urls  = [
+cache_root = "/home/ewpt3ch/dev/pkgstash/tmprepo"
+mirror_urls  = ["https://us.mirrors.cicku.me/archlinux/",
               "https://losangeles.mirror.pkgbuild.com/",
               "https://mirror.givebytes.net/archlinux/",
               "https://arch.mirror.constant.com/",
