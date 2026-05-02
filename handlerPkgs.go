@@ -2,10 +2,11 @@ package main
 
 import (
 	"errors"
+	"io"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/ewpt3ch/pkgstash/internal/cache"
@@ -27,24 +28,28 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 	repo := req.PathValue("repo")
 	arch := req.PathValue("arch")
 	file := req.PathValue("file")
-	repoPath := filepath.Join(repo, "os", arch, file)     //path from mirror root to pkg or db file
-	cachePath := filepath.Join(s.cfg.CacheRoot, repoPath) //absolute path for local read of the file
+	repoPath := filepath.Join(repo, "os", arch, file) //path from mirror root to pkg or db file
 
-	if _, err := os.Stat(cachePath); err != nil {
-		err = s.c.Fetch(repoPath)
-		if err != nil {
-			var upstreamErr *cache.UpstreamError
-			if errors.As(err, &upstreamErr) {
-				log.Printf("upstream error: %v", err)
-				http.Error(w, "Not found upstream", upstreamErr.StatusCode)
-				return
-			}
-			log.Printf("fetch error: %v", err)
-			http.Error(w, "Failed to fetch from upstream", http.StatusBadGateway)
+	cachedFile, err := s.c.Fetch(repoPath)
+	if err != nil {
+		var upstreamErr *cache.UpstreamError
+		if errors.As(err, &upstreamErr) {
+			log.Printf("upstream error: %v", err)
+			http.Error(w, "Not found upstream", upstreamErr.StatusCode)
 			return
 		}
+		log.Printf("fetch error: %v", err)
+		http.Error(w, "Failed to fetch from upstream", http.StatusBadGateway)
+		return
+	}
+	defer cachedFile.Reader.Close()
 
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", "attachment; filename="+cachedFile.Filename)
+	w.Header().Set("Content-Length", strconv.FormatInt(cachedFile.Size, 10))
+	_, err = io.Copy(w, cachedFile.Reader)
+	if err != nil {
+		log.Printf("error streaming file to client: %v", err)
 	}
 
-	http.ServeFile(w, req, cachePath)
 }

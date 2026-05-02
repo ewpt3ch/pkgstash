@@ -19,7 +19,7 @@ func (c *Cache) Refresh() error {
 func (c *Cache) refreshDB(repo string) error {
 	dbFile := repo + ".db.tar.gz"
 	dbPath := filepath.Join(repo, "os/x86_64", dbFile)
-	err := c.Fetch(dbPath)
+	err := c.fetch(dbPath)
 	if err != nil {
 		return err
 	}

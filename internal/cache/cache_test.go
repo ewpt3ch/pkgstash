@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -27,7 +28,43 @@ func newTestCache(t *testing.T, mirrorURLs []string) *Cache {
 	return c
 }
 
-func TestFetchFileExists(t *testing.T) {
+func TestCacheHit(t *testing.T) {
+	const expected = "This is fake file contents"
+
+	c := newTestCache(t, []string{"http://example.com/"})
+	tmpFileName := "fakeFile"
+	tmpPath := filepath.Join(c.cfg.cacheRoot, tmpFileName)
+	err := os.WriteFile(tmpPath, []byte(expected), 0644)
+	if err != nil {
+		t.Fatalf("failed to create tempfile: %v", err)
+	}
+
+	cachedFile, err := c.Fetch(tmpFileName)
+	if err != nil {
+		t.Fatalf("failed to fetch file: %v", err)
+	}
+	defer cachedFile.Reader.Close()
+
+	if cachedFile.Filename != tmpFileName {
+		t.Errorf("expected filename %s got %s", tmpFileName, cachedFile.Filename)
+	}
+
+	if int64(len(expected)) != cachedFile.Size {
+		t.Errorf("expected %d got %d", len(expected), cachedFile.Size)
+	}
+
+	data, err := io.ReadAll(cachedFile.Reader)
+	if err != nil {
+		t.Fatalf("error reading file back: %v", err)
+	}
+	defer cachedFile.Reader.Close()
+
+	if !bytes.Equal(data, []byte(expected)) {
+		t.Errorf("expected file to contain %s got %s", expected, data)
+	}
+}
+
+func TestCacheMissExists(t *testing.T) {
 	const expected = "This is fake file contents"
 
 	svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +73,7 @@ func TestFetchFileExists(t *testing.T) {
 
 	c := newTestCache(t, []string{svr.URL + "/"})
 
-	err := c.Fetch("fakefile")
+	_, err := c.Fetch("fakefile")
 	if err != nil {
 		t.Fatalf("Fetch failed %v", err)
 	}
@@ -59,7 +96,7 @@ func TestFetchNotFound(t *testing.T) {
 
 	c := newTestCache(t, []string{svr.URL + "/"})
 
-	err := c.Fetch("fakefile")
+	_, err := c.Fetch("fakefile")
 	var upstreamErr *UpstreamError
 	if !errors.As(err, &upstreamErr) {
 		t.Fatalf("expected UpstreamError got %v", err)
@@ -76,7 +113,7 @@ func TestFetchSrvError(t *testing.T) {
 
 	c := newTestCache(t, []string{svr.URL + "/"})
 
-	err := c.Fetch("fakefile")
+	_, err := c.Fetch("fakefile")
 	var upstreamErr *UpstreamError
 	if !errors.As(err, &upstreamErr) {
 		t.Fatalf("expected UpstreamError fot %v", err)
@@ -99,7 +136,7 @@ func TestFetchSrvDead(t *testing.T) {
 
 	c := newTestCache(t, []string{svr.URL + "/"})
 
-	err := c.Fetch("fakefile")
+	_, err := c.Fetch("fakefile")
 	if err == nil {
 		t.Fatal("expected err got nil")
 	}
@@ -127,7 +164,7 @@ func TestFetchRetryExists(t *testing.T) {
 
 	c := newTestCache(t, fakeURLs)
 
-	err := c.Fetch("fakefile")
+	_, err := c.Fetch("fakefile")
 	if err != nil {
 		t.Fatalf("fetch failed: %v", err)
 	}
@@ -159,7 +196,7 @@ func TestFetchRetryNonExist(t *testing.T) {
 
 	c := newTestCache(t, fakeURLs)
 
-	err := c.Fetch("fakefile")
+	_, err := c.Fetch("fakefile")
 	var upstreamErr *UpstreamError
 	if !errors.As(err, &upstreamErr) {
 		t.Errorf("expected UpstreamError got %v", err)
