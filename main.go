@@ -25,6 +25,7 @@ func main() {
 
 	cfg, err := ReadConfig(configPath)
 	if err != nil {
+		// #log
 		log.Fatal(err)
 	}
 
@@ -36,6 +37,7 @@ func main() {
 	mux.HandleFunc("POST /api/refresh", srv.handlerRefresh)
 
 	if err := srv.c.Refresh(); err != nil {
+		// #log
 		log.Fatal(err)
 	}
 
@@ -44,6 +46,7 @@ func main() {
 		Handler: mux,
 	}
 
+	// #log
 	log.Printf("serving pkgstash root: %v on port: %v", cfg.CacheRoot, cfg.Port)
 	log.Fatal(httpServe.ListenAndServe())
 

@@ -15,6 +15,7 @@ func (c *Cache) Fetch(relPath string) (*CacheFile, error) {
 
 	// fetch file from upstream
 	_, err, _ = c.sf.Do(relPath, func() (any, error) {
+		// #log
 		log.Print("calling fetch")
 		return nil, c.fetch(relPath)
 	})

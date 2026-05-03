@@ -13,11 +13,13 @@ func (c *Cache) nextMirror() string {
 }
 
 func downloadToDisk(url, destPath string, c http.Client) error {
+	// #log
 	log.Printf("fetching %v", url)
 
 	// set the user agent
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		// #log
 		log.Printf("failed to create request: %v", err)
 		return &UpstreamError{StatusCode: http.StatusInternalServerError}
 	}
@@ -25,10 +27,12 @@ func downloadToDisk(url, destPath string, c http.Client) error {
 
 	resp, err := c.Do(req)
 	if err != nil {
+		// #log
 		log.Printf("error fetching %s: %v", url, err)
 		return err
 	}
 	if resp.StatusCode != 200 {
+		// #log
 		log.Printf("GET %s returned %d", url, resp.StatusCode)
 		return &UpstreamError{StatusCode: resp.StatusCode}
 	}

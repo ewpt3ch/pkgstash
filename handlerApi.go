@@ -11,6 +11,7 @@ func (s *Server) handlerRefresh(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if err := s.c.Refresh(); err != nil {
+		// #log
 		log.Printf("refresh failed: %v", err)
 		http.Error(w, "refresh failed", http.StatusInternalServerError)
 		return

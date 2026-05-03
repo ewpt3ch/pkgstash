@@ -21,6 +21,7 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// record the useragent from requestor
+	// #log
 	log.Printf("Requestors UA: %s", req.Header.Get("User-Agent"))
 
 	// build file paths from the request, they follow archlinux repo
@@ -34,10 +35,12 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		var upstreamErr *cache.UpstreamError
 		if errors.As(err, &upstreamErr) {
+			// #log
 			log.Printf("upstream error: %v", err)
 			http.Error(w, "Not found upstream", upstreamErr.StatusCode)
 			return
 		}
+		// #log
 		log.Printf("fetch error: %v", err)
 		http.Error(w, "Failed to fetch from upstream", http.StatusBadGateway)
 		return
@@ -49,6 +52,7 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Length", strconv.FormatInt(cachedFile.Size, 10))
 	_, err = io.Copy(w, cachedFile.Reader)
 	if err != nil {
+		// #log
 		log.Printf("error streaming file to client: %v", err)
 	}
 
