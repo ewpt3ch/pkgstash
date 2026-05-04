@@ -3,7 +3,7 @@ package main
 import (
 	"errors"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -21,8 +21,7 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 	}
 
 	// record the useragent from requestor
-	// #log level debug
-	log.Printf("Requestors UA: %s", req.Header.Get("User-Agent"))
+	slog.Debug("Requestors User Agent", "UA", req.Header.Get("User-Agent"))
 
 	// build file paths from the request, they follow archlinux repo
 	// <mirrorroot>/[core, extra, etc]/os/[x86_64, arm, etc]/package.pkg.tar.zst[.sig]
@@ -34,13 +33,11 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 	cachedFile, err := s.c.Fetch(repoPath)
 	if err != nil {
 		if upstreamErr, ok := errors.AsType[*cache.UpstreamError](err); ok {
-			// #log level warn
-			log.Printf("upstream Error: %v", upstreamErr.Error())
+			slog.Warn("upstream error", "err", upstreamErr.Error())
 			http.Error(w, "Not found upstream", upstreamErr.StatusCode)
 			return
 		}
-		// #log level warn
-		log.Printf("fetch error: %v", err)
+		slog.Warn("fetch error", "err", err)
 		http.Error(w, "Failed to fetch from upstream", http.StatusBadGateway)
 		return
 	}
@@ -51,8 +48,7 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Length", strconv.FormatInt(cachedFile.Size, 10))
 	_, err = io.Copy(w, cachedFile.Reader)
 	if err != nil {
-		// #log error
-		log.Printf("error streaming file to client: %v", err)
+		slog.Warn("streaming error", "err", err)
 	}
 
 }

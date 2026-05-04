@@ -2,8 +2,10 @@ package main
 
 import (
 	"flag"
-	"log"
+	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/ewpt3ch/pkgstash/internal/cache"
 )
@@ -15,18 +17,33 @@ type Server struct {
 
 func main() {
 
-	// set config from flag if available
+	// get options from cli flags
 	var configPath string
 	flag.StringVar(&configPath, "config", "", "path to config file")
+	logFlag := flag.String("loglevel", "INFO", "loglevel: DEBUG, INFO, WARN, ERROR")
 	flag.Parse()
+
+	// set config from flag if available
 	if len(configPath) == 0 {
 		configPath = "/etc/pkgstash/pkgstash.toml"
 	}
 
+	//set log level from flag if available
+	var logLevel slog.Level
+	if err := logLevel.UnmarshalText([]byte(*logFlag)); err != nil {
+		fmt.Fprintf(os.Stderr, "invalid log level %q, defaulting to INFO\n", *logFlag)
+		logLevel = slog.LevelInfo
+	}
+
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: logLevel,
+	}))
+	slog.SetDefault(logger)
+
 	cfg, err := ReadConfig(configPath)
 	if err != nil {
-		// #log error
-		log.Fatal(err)
+		slog.Error("failed to read config", "err", err)
+		os.Exit(1)
 	}
 
 	c := cache.NewCache(cfg.CacheRoot, cfg.MirrorURLs, cfg.MirroredRepos)
@@ -37,8 +54,8 @@ func main() {
 	mux.HandleFunc("POST /api/refresh", srv.handlerRefresh)
 
 	if err := srv.c.Refresh(); err != nil {
-		// #log error
-		log.Fatal(err)
+		slog.Error("failed to refesh db files", "err", err)
+		os.Exit(1)
 	}
 
 	httpServe := &http.Server{
@@ -46,8 +63,10 @@ func main() {
 		Handler: mux,
 	}
 
-	// #log error
-	log.Printf("serving pkgstash root: %v on port: %v", cfg.CacheRoot, cfg.Port)
-	log.Fatal(httpServe.ListenAndServe())
+	slog.Info("serving pkgstash", "root", cfg.CacheRoot, "port", cfg.Port)
+	if err = httpServe.ListenAndServe(); err != nil {
+		slog.Error("server failed", "err", err)
+		os.Exit(1)
+	}
 
 }
