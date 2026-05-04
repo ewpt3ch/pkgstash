@@ -1,4 +1,7 @@
 - Add better logging for errors, filename more deatail
+    - ~package main~
+    - internal/cache
+    - api endpoint to change level
 - implement streaming
 
 - Complete testing
@@ -7,6 +10,7 @@
 - clean cache of old files
 - Add chi for mux
 - Build server/tool
+- Think about: arch doesn't like partial upgrades, round robin fetching the db files might be an issue
 - ~retry on failed fetch~
 - ~Solve timeout issue large pkgs~
 - ~Move project to github as primary~
