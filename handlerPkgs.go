@@ -14,14 +14,14 @@ import (
 
 func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 
-	// most mirrors don't have a *db.sig so we 404 it here instead of spamming the mirror
+	// db files are not signed so we ignore as to not spam mirrors
 	if strings.HasSuffix(req.PathValue("file"), ".db.sig") {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	// record the useragent from requestor
-	// #log
+	// #log level debug
 	log.Printf("Requestors UA: %s", req.Header.Get("User-Agent"))
 
 	// build file paths from the request, they follow archlinux repo
@@ -29,18 +29,17 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 	repo := req.PathValue("repo")
 	arch := req.PathValue("arch")
 	file := req.PathValue("file")
-	repoPath := filepath.Join(repo, "os", arch, file) //path from mirror root to pkg or db file
+	repoPath := filepath.Join(repo, "os", arch, file) //path from mirror root to requested file
 
 	cachedFile, err := s.c.Fetch(repoPath)
 	if err != nil {
-		var upstreamErr *cache.UpstreamError
-		if errors.As(err, &upstreamErr) {
-			// #log
-			log.Printf("upstream error: %v", err)
+		if upstreamErr, ok := errors.AsType[*cache.UpstreamError](err); ok {
+			// #log level warn
+			log.Printf("upstream Error: %v", upstreamErr.Error())
 			http.Error(w, "Not found upstream", upstreamErr.StatusCode)
 			return
 		}
-		// #log
+		// #log level warn
 		log.Printf("fetch error: %v", err)
 		http.Error(w, "Failed to fetch from upstream", http.StatusBadGateway)
 		return
@@ -52,7 +51,7 @@ func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Length", strconv.FormatInt(cachedFile.Size, 10))
 	_, err = io.Copy(w, cachedFile.Reader)
 	if err != nil {
-		// #log
+		// #log error
 		log.Printf("error streaming file to client: %v", err)
 	}
 

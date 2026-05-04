@@ -15,7 +15,7 @@ func (c *Cache) Fetch(relPath string) (*CacheFile, error) {
 
 	// fetch file from upstream
 	_, err, _ = c.sf.Do(relPath, func() (any, error) {
-		// #log
+		// #log info
 		log.Print("calling fetch")
 		return nil, c.fetch(relPath)
 	})
@@ -46,6 +46,8 @@ func (c *Cache) fetch(relPath string) error {
 		if err == nil {
 			break
 		}
+		// #log warn or info
+		log.Printf("mirror %s returned %v", url, err)
 	}
 	if err != nil {
 		return err
