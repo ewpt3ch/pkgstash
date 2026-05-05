@@ -1,16 +1,15 @@
-- Add better logging for errors, filename more deatail
-    - ~package main~
-    - ~internal/cache~
-    - api endpoint to change level
-- implement streaming
-
 - Complete testing
 - Deployment(PKGBUILD, bootstrap script?)
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
 - clean cache of old files
+- implement streaming
 - Add chi for mux
 - Build server/tool
 - Think about: arch doesn't like partial upgrades, round robin fetching the db files might be an issue
+- ~Add better logging for errors, filename more deatail~
+    - ~package main~
+    - ~internal/cache~
+    - ~api endpoint to change level~
 - ~retry on failed fetch~
 - ~Solve timeout issue large pkgs~
 - ~Move project to github as primary~

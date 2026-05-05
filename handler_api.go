@@ -9,7 +9,12 @@ import (
 
 func (s *Server) handlerRefresh(w http.ResponseWriter, req *http.Request) {
 	if req.Header.Get("Authorization") != "Bearer "+s.cfg.Auth.Token {
-		http.Error(w, "unauthorized", http.StatusInternalServerError)
+		ip := req.Header.Get("X-Real-IP")
+		if ip == "" {
+			ip = req.RemoteAddr
+		}
+		slog.Warn("unauthorized request", "ip", ip, "path", req.URL.Path, "method", req.Method)
+		respondWithError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 	defer req.Body.Close()
@@ -24,6 +29,11 @@ func (s *Server) handlerRefresh(w http.ResponseWriter, req *http.Request) {
 
 func (s *Server) handlerLogLevel(w http.ResponseWriter, req *http.Request) {
 	if req.Header.Get("Authorization") != "Bearer "+s.cfg.Auth.Token {
+		ip := req.Header.Get("X-Real-IP")
+		if ip == "" {
+			ip = req.RemoteAddr
+		}
+		slog.Warn("unauthorized request", "ip", ip, "path", req.URL.Path, "method", req.Method)
 		respondWithError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
