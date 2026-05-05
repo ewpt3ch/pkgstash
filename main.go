@@ -11,8 +11,9 @@ import (
 )
 
 type Server struct {
-	cfg *Config
-	c   *cache.Cache
+	cfg      *Config
+	c        *cache.Cache
+	logLevel *slog.LevelVar
 }
 
 func main() {
@@ -29,10 +30,10 @@ func main() {
 	}
 
 	//set log level from flag if available
-	var logLevel slog.Level
+	logLevel := new(slog.LevelVar)
 	if err := logLevel.UnmarshalText([]byte(*logFlag)); err != nil {
 		fmt.Fprintf(os.Stderr, "invalid log level %q, defaulting to INFO\n", *logFlag)
-		logLevel = slog.LevelInfo
+		logLevel.Set(slog.LevelInfo)
 	}
 
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
@@ -47,11 +48,16 @@ func main() {
 	}
 
 	c := cache.NewCache(cfg.CacheRoot, cfg.MirrorURLs, cfg.MirroredRepos)
-	srv := &Server{cfg: cfg, c: c}
+	srv := &Server{
+		cfg:      cfg,
+		c:        c,
+		logLevel: logLevel,
+	}
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /{repo}/os/{arch}/{file}", srv.handlePackage)
+	mux.HandleFunc("GET /{repo}/os/{arch}/{file}", srv.handlerPackage)
 	mux.HandleFunc("POST /api/refresh", srv.handlerRefresh)
+	mux.HandleFunc("POST /api/loglevel", srv.handlerLogLevel)
 
 	if err := srv.c.Refresh(); err != nil {
 		slog.Error("failed to refesh db files", "err", err)
