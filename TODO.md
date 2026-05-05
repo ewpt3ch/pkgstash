@@ -1,6 +1,6 @@
 - Add better logging for errors, filename more deatail
     - ~package main~
-    - internal/cache
+    - ~internal/cache~
     - api endpoint to change level
 - implement streaming
 
