@@ -2,7 +2,7 @@ package cache
 
 import (
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 )
@@ -13,27 +13,22 @@ func (c *Cache) nextMirror() string {
 }
 
 func downloadToDisk(url, destPath string, c http.Client) error {
-	// #log info
-	log.Printf("fetching %v", url)
+	slog.Info("fetching", "url", url)
 
 	// set the user agent
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		// #log info
-		log.Printf("failed to create request: %v", err)
-		return &UpstreamError{StatusCode: http.StatusInternalServerError}
+		slog.Error("failed create request", "err", err)
 	}
 	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := c.Do(req)
 	if err != nil {
-		// #log warn
-		log.Printf("error fetching %s: %v", url, err)
+		slog.Warn("fetch failed", "url", url, "err", err)
 		return err
 	}
 	if resp.StatusCode != 200 {
-		// #log info
-		log.Printf("GET %s returned %d", url, resp.StatusCode)
+		slog.Info("fetch returned", "url", url, "status", resp.StatusCode)
 		return &UpstreamError{StatusCode: resp.StatusCode}
 	}
 	defer resp.Body.Close()

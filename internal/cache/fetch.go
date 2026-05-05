@@ -1,7 +1,8 @@
 package cache
 
 import (
-	"log"
+	"errors"
+	"log/slog"
 	"os"
 	"path/filepath"
 )
@@ -15,8 +16,7 @@ func (c *Cache) Fetch(relPath string) (*CacheFile, error) {
 
 	// fetch file from upstream
 	_, err, _ = c.sf.Do(relPath, func() (any, error) {
-		// #log info
-		log.Print("calling fetch")
+		slog.Info("calling fetch")
 		return nil, c.fetch(relPath)
 	})
 	if err != nil {
@@ -46,8 +46,11 @@ func (c *Cache) fetch(relPath string) error {
 		if err == nil {
 			break
 		}
-		// #log warn or info
-		log.Printf("mirror %s returned %v", url, err)
+		if upstreamErr, ok := errors.AsType[*UpstreamError](err); ok {
+			slog.Warn("mirror failed", "url", url, "status", upstreamErr.StatusCode)
+		} else {
+			slog.Warn("mirror unreachable", "url", url, "err", err)
+		}
 	}
 	if err != nil {
 		return err
