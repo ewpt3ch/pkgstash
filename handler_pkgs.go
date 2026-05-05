@@ -12,7 +12,7 @@ import (
 	"github.com/ewpt3ch/pkgstash/internal/cache"
 )
 
-func (s *Server) handlePackage(w http.ResponseWriter, req *http.Request) {
+func (s *Server) handlerPackage(w http.ResponseWriter, req *http.Request) {
 
 	// db files are not signed so we ignore as to not spam mirrors
 	if strings.HasSuffix(req.PathValue("file"), ".db.sig") {
