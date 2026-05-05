@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"path/filepath"
 )
 
 func (c *Cache) nextMirror() string {
@@ -32,6 +33,9 @@ func downloadToDisk(url, destPath string, c http.Client) error {
 		return &UpstreamError{StatusCode: resp.StatusCode}
 	}
 	defer resp.Body.Close()
+
+	// make sure the dir structure exists
+	os.MkdirAll(filepath.Dir(destPath), 0755)
 
 	// use a tmp file for the initial fetch in case it fails
 	tempPath := destPath + ".tmp"
