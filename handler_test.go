@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync/atomic"
 	"testing"
 
 	"github.com/ewpt3ch/pkgstash/internal/cache"
@@ -16,6 +17,14 @@ var (
 	mirrorOK  = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "fake pkg data") })
 	mirror404 = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNotFound) })
 )
+
+func mirrorOKWithCounter() (http.HandlerFunc, *atomic.Int32) {
+	var calls atomic.Int32
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls.Add(1)
+		fmt.Fprint(w, "fake pkg data")
+	}), &calls
+}
 
 const testUrlBase = "/core/os/x86_64"
 
@@ -91,7 +100,8 @@ func TestHandlerPkgsMiss(t *testing.T) {
 
 func TestHandlerPkgsDBSig(t *testing.T) {
 
-	ts, _ := newTestServer(t, mirrorOK)
+	handler, calls := mirrorOKWithCounter()
+	ts, _ := newTestServer(t, handler)
 
 	resp, err := http.Get(ts.URL + testUrlBase + "/core.db.sig")
 	if err != nil {
@@ -99,6 +109,9 @@ func TestHandlerPkgsDBSig(t *testing.T) {
 	}
 	if resp.StatusCode != http.StatusNotFound {
 		t.Errorf("expected 404 got %d", resp.StatusCode)
+	}
+	if calls.Load() != 0 {
+		t.Error("expected no upstream calls for .db.sig")
 	}
 }
 
