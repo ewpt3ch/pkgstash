@@ -4,4 +4,5 @@ Description=[refresh pkgstash db files]
 [Service]
 Type=oneshot
 User=pkgstash
-ExecStart=/usr/bin/curl -s -X POST -H "Authorization: Bearer <token>" http://localhost:8090/api/refresh
+EnvironmentFile=/etc/pkgstash/pkgstash.env
+ExecStart=/usr/bin/curl -s -X POST -H "Authorization: Bearer ${PKGSTASH_TOKEN}" http://localhost:8090/api/refresh
