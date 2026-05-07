@@ -14,6 +14,7 @@ import (
 )
 
 var (
+	//nolint:errcheck //ephemeral no need to check
 	mirrorOK  = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { fmt.Fprint(w, "fake pkg data") })
 	mirror404 = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusNotFound) })
 )
@@ -22,6 +23,7 @@ func mirrorOKWithCounter() (http.HandlerFunc, *atomic.Int32) {
 	var calls atomic.Int32
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls.Add(1)
+		//nolint:errcheck //ephemeral no need to check
 		fmt.Fprint(w, "fake pkg data")
 	}), &calls
 }

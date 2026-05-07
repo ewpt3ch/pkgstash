@@ -43,6 +43,7 @@ func TestCacheHit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to fetch file: %v", err)
 	}
+	//nolint:errcheck //ephemeral no need to check
 	defer cachedFile.Reader.Close()
 
 	if cachedFile.Filename != tmpFileName {
@@ -57,6 +58,7 @@ func TestCacheHit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error reading file back: %v", err)
 	}
+	//nolint:errcheck //ephemeral no need to check
 	defer cachedFile.Reader.Close()
 
 	if !bytes.Equal(data, []byte(expected)) {
@@ -68,6 +70,7 @@ func TestCacheMissExists(t *testing.T) {
 	const expected = "This is fake file contents"
 
 	svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//nolint:errcheck //ephemeral no need to check
 		fmt.Fprint(w, expected)
 	}))
 
@@ -127,6 +130,7 @@ func TestFetchSrvDead(t *testing.T) {
 		case <-r.Context().Done():
 			return
 		case <-time.After(60 * time.Second):
+			//nolint:errcheck //ephemeral no need to check
 			fmt.Fprint(w, "too late")
 		}
 	}))
@@ -152,6 +156,7 @@ func TestFetchRetryExists(t *testing.T) {
 	}))
 
 	svr2 := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//nolint:errcheck //ephemeral no need to check
 		fmt.Fprint(w, expected)
 	}))
 	fakeURLs := []string{
