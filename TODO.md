@@ -2,6 +2,7 @@
     - PKGBUILD
     - bootstrap script
     - ~ci testing, lint, gosec, vulncheck~
+    - ci check golangci-lint docs
     - ~graceful shutdown~
     - cd build binary, package
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
