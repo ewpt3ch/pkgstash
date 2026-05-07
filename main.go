@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/ewpt3ch/pkgstash/internal/cache"
 )
@@ -65,8 +66,9 @@ func main() {
 	}
 
 	httpServe := &http.Server{
-		Addr:    ":" + srv.cfg.Port,
-		Handler: mux,
+		Addr:              ":" + srv.cfg.Port,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	slog.Info("serving pkgstash", "root", cfg.CacheRoot, "port", cfg.Port)

@@ -35,7 +35,10 @@ func downloadToDisk(url, destPath string, c http.Client) error {
 	defer resp.Body.Close()
 
 	// make sure the dir structure exists
-	os.MkdirAll(filepath.Dir(destPath), 0755)
+	err = os.MkdirAll(filepath.Dir(destPath), 0750)
+	if err != nil {
+		return err
+	}
 
 	// use a tmp file for the initial fetch in case it fails
 	tempPath := destPath + ".tmp"
@@ -47,13 +50,19 @@ func downloadToDisk(url, destPath string, c http.Client) error {
 
 	_, err = io.Copy(tmpFile, resp.Body)
 	if err != nil {
-		os.Remove(tempPath)
+		removeErr := os.Remove(tempPath)
+		if removeErr != nil {
+			slog.Warn("failed to remove temp file", "path", tempPath, "err", removeErr)
+		}
 		return err
 	}
 
 	// mv file to final location
 	if err := os.Rename(tempPath, destPath); err != nil {
-		os.Remove(tempPath)
+		removeErr := os.Remove(tempPath)
+		if removeErr != nil {
+			slog.Warn("failed to remove temp file", "path", tempPath, "err", removeErr)
+		}
 		return err
 	}
 	return nil
