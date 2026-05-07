@@ -2,14 +2,19 @@
 Description=Sparse caching arch linux mirror
 After=network-online.target
 Wants=network-online.target
+StartLimitInterval=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/pkgstash
+ExecStart=/usr/local/bin/pkgstash --config /etd/pkgstash/pkgstash.toml
 User=pkgstash
 Group=pkgstash
 Restart=on-failure
 RestartSec=5s
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/srv/pkgstash
 
 [Install]
 WantedBy=multi-user.target
