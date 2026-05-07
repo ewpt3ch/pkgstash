@@ -17,7 +17,6 @@ func (s *Server) handlerRefresh(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	defer req.Body.Close()
 
 	if err := s.c.Refresh(); err != nil {
 		slog.Error("refresh failed", "err", err)
@@ -37,7 +36,6 @@ func (s *Server) handlerLogLevel(w http.ResponseWriter, req *http.Request) {
 		respondWithError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	defer req.Body.Close()
 
 	type reqParameters struct {
 		NewLevel string `json:"loglevel"`

@@ -32,7 +32,11 @@ func (c *Cache) downloadToDisk(url, relPath string) error {
 		slog.Info("fetch returned", "url", url, "status", resp.StatusCode)
 		return &UpstreamError{StatusCode: resp.StatusCode}
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}()
 
 	// make sure the dir structure exists
 	err = c.cr.MkdirAll(filepath.Dir(relPath), 0750)
@@ -46,7 +50,11 @@ func (c *Cache) downloadToDisk(url, relPath string) error {
 	if err != nil {
 		return err
 	}
-	defer tmpFile.Close()
+	defer func() {
+		if closeErr := tmpFile.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}()
 
 	_, err = io.Copy(tmpFile, resp.Body)
 	if err != nil {

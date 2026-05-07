@@ -41,7 +41,11 @@ func (s *Server) handlerPackage(w http.ResponseWriter, req *http.Request) {
 		http.Error(w, "Failed to fetch from upstream", http.StatusBadGateway)
 		return
 	}
-	defer cachedFile.Reader.Close()
+	defer func() {
+		if closeErr := cachedFile.Reader.Close(); closeErr != nil {
+			err = closeErr
+		}
+	}()
 
 	w.Header().Set("Content-Type", "application/octet-stream")
 	w.Header().Set("Content-Disposition", "attachment; filename="+cachedFile.Filename)
