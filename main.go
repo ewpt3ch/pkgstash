@@ -56,7 +56,7 @@ func main() {
 		slog.Error("failed to create cache", "err", err)
 		os.Exit(1)
 	}
-	defer c.Close()
+	defer c.Close() //nolint:errcheck // best effort cleanup on exit
 
 	srv := &Server{
 		cfg:      cfg,
@@ -71,7 +71,8 @@ func main() {
 
 	if err := srv.c.Refresh(); err != nil {
 		slog.Error("failed to refesh db files", "err", err)
-		c.Close()
+		//nolint:errcheck //already exiting
+		_ = c.Close() // best effort cleanup on exit
 		os.Exit(1)
 	}
 
@@ -89,7 +90,7 @@ func main() {
 		slog.Info("serving pkgstash", "root", cfg.CacheRoot, "port", cfg.Port)
 		if err = httpServe.ListenAndServe(); err != http.ErrServerClosed {
 			slog.Error("server failed", "err", err)
-			c.Close()
+			_ = c.Close() // best effort cleanup on exit
 			os.Exit(1)
 		}
 	}()
