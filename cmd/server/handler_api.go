@@ -8,7 +8,7 @@ import (
 )
 
 func (s *Server) handlerRefresh(w http.ResponseWriter, req *http.Request) {
-	if req.Header.Get("Authorization") != "Bearer "+s.cfg.Auth.Token {
+	if req.Header.Get("Authorization") != "Bearer "+s.cfg.Token {
 		ip := req.Header.Get("X-Real-IP")
 		if ip == "" {
 			ip = req.RemoteAddr
@@ -27,7 +27,7 @@ func (s *Server) handlerRefresh(w http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Server) handlerLogLevel(w http.ResponseWriter, req *http.Request) {
-	if req.Header.Get("Authorization") != "Bearer "+s.cfg.Auth.Token {
+	if req.Header.Get("Authorization") != "Bearer "+s.cfg.Token {
 		ip := req.Header.Get("X-Real-IP")
 		if ip == "" {
 			ip = req.RemoteAddr
