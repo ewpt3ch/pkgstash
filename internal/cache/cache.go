@@ -16,7 +16,7 @@ const userAgent = "pacman/7.1.0 (Linux x86_64) libalpm/16.0.1"
 
 type Cache struct {
 	cfg       CacheConfig
-	mirrorIdx atomic.Uint32
+	mirrorIdx atomic.Uint64
 	sf        singleflight.Group //prevents duplicate downloads
 	mu        sync.Mutex
 	client    http.Client

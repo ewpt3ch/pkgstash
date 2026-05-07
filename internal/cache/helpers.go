@@ -10,7 +10,8 @@ import (
 
 func (c *Cache) nextMirror() string {
 	idx := c.mirrorIdx.Add(1) - 1
-	return c.cfg.mirrorURLs[idx%uint32(len(c.cfg.mirrorURLs))]
+	mirrorCount := uint64(len(c.cfg.mirrorURLs))
+	return c.cfg.mirrorURLs[idx%mirrorCount]
 }
 
 func downloadToDisk(url, destPath string, c http.Client) error {
