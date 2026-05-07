@@ -1,3 +1,4 @@
+env_file = "/etc/pkgstash/pkgstash.env"
 cache_root = "/home/ewpt3ch/dev/pkgstash/tmprepo"
 mirror_urls  = [
               "https://losangeles.mirror.pkgbuild.com/",
@@ -8,6 +9,3 @@ mirror_urls  = [
 # or pacman docs for more info <core, extra, multilib>
 mirrored_repos = ["core", "extra"]
 port        = "8090"
-
-[auth]
-token = "FakeToken"
