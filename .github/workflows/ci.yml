@@ -30,7 +30,7 @@ jobs:
         run: gosec ./...
 
       - name: Run govulncheck
-        run: govulncheck ./...
+        uses: golang/govulncheck-action@v1
 
   style:
     name: Style
