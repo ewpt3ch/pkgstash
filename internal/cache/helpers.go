@@ -4,7 +4,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 	"path/filepath"
 )
 
@@ -14,7 +13,7 @@ func (c *Cache) nextMirror() string {
 	return c.cfg.mirrorURLs[idx%mirrorCount]
 }
 
-func downloadToDisk(url, destPath string, c http.Client) error {
+func (c *Cache) downloadToDisk(url, relPath string) error {
 	slog.Info("fetching", "url", url)
 
 	// set the user agent
@@ -24,7 +23,7 @@ func downloadToDisk(url, destPath string, c http.Client) error {
 	}
 	req.Header.Set("User-Agent", userAgent)
 
-	resp, err := c.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		slog.Warn("fetch failed", "url", url, "err", err)
 		return err
@@ -36,14 +35,14 @@ func downloadToDisk(url, destPath string, c http.Client) error {
 	defer resp.Body.Close()
 
 	// make sure the dir structure exists
-	err = os.MkdirAll(filepath.Dir(destPath), 0750)
+	err = c.cr.MkdirAll(filepath.Dir(relPath), 0750)
 	if err != nil {
 		return err
 	}
 
 	// use a tmp file for the initial fetch in case it fails
-	tempPath := destPath + ".tmp"
-	tmpFile, err := os.Create(tempPath)
+	tmpPath := relPath + ".tmp"
+	tmpFile, err := c.cr.Create(tmpPath)
 	if err != nil {
 		return err
 	}
@@ -51,18 +50,19 @@ func downloadToDisk(url, destPath string, c http.Client) error {
 
 	_, err = io.Copy(tmpFile, resp.Body)
 	if err != nil {
-		removeErr := os.Remove(tempPath)
+		removeErr := c.cr.Remove(tmpPath)
 		if removeErr != nil {
-			slog.Warn("failed to remove temp file", "path", tempPath, "err", removeErr)
+			slog.Warn("failed to remove temp file", "path", tmpPath, "err", removeErr)
 		}
 		return err
 	}
 
 	// mv file to final location
-	if err := os.Rename(tempPath, destPath); err != nil {
-		removeErr := os.Remove(tempPath)
+	err = c.cr.Rename(tmpPath, relPath)
+	if err != nil {
+		removeErr := c.cr.Remove(tmpPath)
 		if removeErr != nil {
-			slog.Warn("failed to remove temp file", "path", tempPath, "err", removeErr)
+			slog.Warn("failed to remove temp file", "path", tmpPath, "err", removeErr)
 		}
 		return err
 	}

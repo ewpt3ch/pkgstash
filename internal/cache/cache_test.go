@@ -7,8 +7,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 )
@@ -23,7 +21,10 @@ func newTestServer(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 func newTestCache(t *testing.T, mirrorURLs []string) *Cache {
 	t.Helper()
 	mirroredRepos := []string{"core", "extra"}
-	c := NewCache(t.TempDir(), mirrorURLs, mirroredRepos)
+	c, err := NewCache(t.TempDir(), mirrorURLs, mirroredRepos)
+	if err != nil {
+		t.Fatalf("failed to create cache: %v", err)
+	}
 	c.client.Timeout = 500 * time.Millisecond
 	return c
 }
@@ -33,8 +34,7 @@ func TestCacheHit(t *testing.T) {
 
 	c := newTestCache(t, []string{"http://example.com/"})
 	tmpFileName := "fakeFile"
-	tmpPath := filepath.Join(c.cfg.cacheRoot, tmpFileName)
-	err := os.WriteFile(tmpPath, []byte(expected), 0644)
+	err := c.cr.WriteFile(tmpFileName, []byte(expected), 0644)
 	if err != nil {
 		t.Fatalf("failed to create tempfile: %v", err)
 	}
@@ -78,9 +78,7 @@ func TestCacheMissExists(t *testing.T) {
 		t.Fatalf("Fetch failed %v", err)
 	}
 
-	fakefilepath := filepath.Join(c.cfg.cacheRoot, "fakefile")
-
-	data, err := os.ReadFile(fakefilepath)
+	data, err := c.cr.ReadFile("fakefile")
 	if err != nil {
 		t.Fatalf("Error reading file back: %v", err)
 	}
@@ -141,8 +139,7 @@ func TestFetchSrvDead(t *testing.T) {
 		t.Fatal("expected err got nil")
 	}
 
-	var upstreamErr *UpstreamError
-	if errors.As(err, &upstreamErr) {
+	if _, ok := errors.AsType[*UpstreamError](err); ok {
 		t.Error("expected network error not UpstreamError")
 	}
 }
@@ -169,8 +166,7 @@ func TestFetchRetryExists(t *testing.T) {
 		t.Fatalf("fetch failed: %v", err)
 	}
 
-	fakefilepath := filepath.Join(c.cfg.cacheRoot, "fakefile")
-	data, err := os.ReadFile(fakefilepath)
+	data, err := c.cr.ReadFile("fakefile")
 	if err != nil {
 		t.Fatalf("error reading file back: %v", err)
 	}

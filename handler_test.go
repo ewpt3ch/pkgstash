@@ -34,7 +34,10 @@ func newTestServer(t *testing.T, mirrorHandler http.HandlerFunc) (*httptest.Serv
 	mirror := httptest.NewServer(mirrorHandler)
 	t.Cleanup(func() { mirror.Close() })
 
-	c := cache.NewCache(t.TempDir(), []string{mirror.URL + "/"}, []string{"core"})
+	c, err := cache.NewCache(t.TempDir(), []string{mirror.URL + "/"}, []string{"core"})
+	if err != nil {
+		t.Fatalf("failed to create cache: %v", err)
+	}
 	cfg := &Config{
 		Port: "0",
 		Auth: AuthConfig{Token: "testtoken"},

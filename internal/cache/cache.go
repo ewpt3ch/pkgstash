@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -16,6 +17,7 @@ const userAgent = "pacman/7.1.0 (Linux x86_64) libalpm/16.0.1"
 
 type Cache struct {
 	cfg       CacheConfig
+	cr        *os.Root
 	mirrorIdx atomic.Uint64
 	sf        singleflight.Group //prevents duplicate downloads
 	mu        sync.Mutex
@@ -23,7 +25,6 @@ type Cache struct {
 }
 
 type CacheConfig struct {
-	cacheRoot             string
 	mirrorURLs            []string
 	mirroredRepos         []string
 	DialTimeout           time.Duration
@@ -37,9 +38,8 @@ type CacheFile struct {
 	Filename string
 }
 
-func NewCache(cacheRoot string, mirrorURLs []string, mirroredRepos []string) *Cache {
+func NewCache(cacheRoot string, mirrorURLs []string, mirroredRepos []string) (*Cache, error) {
 	cfg := CacheConfig{
-		cacheRoot:             cacheRoot,
 		mirrorURLs:            mirrorURLs,
 		mirroredRepos:         mirroredRepos,
 		DialTimeout:           5 * time.Second,
@@ -54,13 +54,19 @@ func NewCache(cacheRoot string, mirrorURLs []string, mirroredRepos []string) *Ca
 		ResponseHeaderTimeout: cfg.ResponseHeaderTimeout,
 	}
 
+	cr, err := os.OpenRoot(cacheRoot)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Cache{
 		cfg: cfg,
+		cr:  cr,
 		client: http.Client{
 			Timeout:   cfg.ClientTimeout,
 			Transport: transport,
 		},
-	}
+	}, nil
 }
 
 type UpstreamError struct {

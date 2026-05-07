@@ -3,13 +3,12 @@ package cache
 import (
 	"errors"
 	"log/slog"
-	"os"
 	"path/filepath"
 )
 
 func (c *Cache) Fetch(relPath string) (*CacheFile, error) {
 	// return file directly if exists in cache
-	cf, err := getCachedFile(c.cfg.cacheRoot, relPath)
+	cf, err := c.getCachedFile(relPath)
 	if err == nil {
 		return cf, nil
 	}
@@ -23,7 +22,7 @@ func (c *Cache) Fetch(relPath string) (*CacheFile, error) {
 		return nil, err
 	}
 
-	cf, err = getCachedFile(c.cfg.cacheRoot, relPath)
+	cf, err = c.getCachedFile(relPath)
 	if err != nil {
 		return nil, err
 	}
@@ -34,15 +33,12 @@ func (c *Cache) fetch(relPath string) error {
 	// relPath is relative to the localRoot
 	// ie relPath includes /{repo}/os/{arch}/ and the actual name linux-x.x.x.pkg.tar.zst
 
-	// final file name and path
-	destPath := filepath.Join(c.cfg.cacheRoot, relPath)
-
 	// declare vars outside loop
 	var err error
 	// fetch pkgs from mirror with retry logic
 	for range len(c.cfg.mirrorURLs) {
 		url := c.nextMirror() + relPath
-		err = downloadToDisk(url, destPath, c.client)
+		err = c.downloadToDisk(url, relPath)
 		if err == nil {
 			break
 		}
@@ -58,14 +54,13 @@ func (c *Cache) fetch(relPath string) error {
 	return nil
 }
 
-func getCachedFile(cacheRoot, relPath string) (*CacheFile, error) {
-	filePath := filepath.Join(cacheRoot, relPath)
-	info, err := os.Stat(filePath)
+func (c *Cache) getCachedFile(relPath string) (*CacheFile, error) {
+	info, err := c.cr.Stat(relPath)
 	if err != nil {
 		return nil, err
 	}
 
-	f, err := os.Open(filePath)
+	f, err := c.cr.Open(relPath)
 	if err != nil {
 		return nil, err
 	}
@@ -73,6 +68,6 @@ func getCachedFile(cacheRoot, relPath string) (*CacheFile, error) {
 	return &CacheFile{
 		Reader:   f,
 		Size:     info.Size(),
-		Filename: filepath.Base(filePath),
+		Filename: filepath.Base(relPath),
 	}, nil
 }

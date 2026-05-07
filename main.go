@@ -48,7 +48,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	c := cache.NewCache(cfg.CacheRoot, cfg.MirrorURLs, cfg.MirroredRepos)
+	c, err := cache.NewCache(cfg.CacheRoot, cfg.MirrorURLs, cfg.MirroredRepos)
+	if err != nil {
+		slog.Error("failed to create cache", "err", err)
+		os.Exit(1)
+	}
 	srv := &Server{
 		cfg:      cfg,
 		c:        c,
