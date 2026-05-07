@@ -69,6 +69,10 @@ func NewCache(cacheRoot string, mirrorURLs []string, mirroredRepos []string) (*C
 	}, nil
 }
 
+func (c *Cache) Close() error {
+	return c.cr.Close()
+}
+
 type UpstreamError struct {
 	StatusCode int
 }

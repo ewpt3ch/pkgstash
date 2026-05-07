@@ -1,7 +1,8 @@
 - Deployment
     - PKGBUILD
     - bootstrap script
-    - ~ci testing, lint, gosec~
+    - ~ci testing, lint, gosec, vulncheck~
+    - ~graceful shutdown~
     - cd build binary, package
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
 - clean cache of old files
