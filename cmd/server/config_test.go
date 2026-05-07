@@ -2,31 +2,59 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
-func writeConfigFile(t *testing.T, content string) string {
+func writeConfigFiles(t *testing.T, cfgMap map[string]string, envPerm os.FileMode) string {
 	t.Helper()
 	dir := t.TempDir()
-	path := filepath.Join(dir, "config.toml")
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+	tomlPath := filepath.Join(dir, "config.toml")
+	envPath := filepath.Join(dir, "pkgstash.env")
+
+	// set env_file path
+	cfgMap["env_file"] = fmt.Sprintf("%q", envPath)
+
+	// build the content strings
+	var tb strings.Builder
+	var eb strings.Builder
+	for k, v := range cfgMap {
+		if k == "PKGSTASH_TOKEN" {
+			fmt.Fprintf(&eb, "%s=%s\n", k, v)
+		} else {
+			fmt.Fprintf(&tb, "%s = %s\n", k, v)
+		}
+	}
+
+	//write config.toml
+	if err := os.WriteFile(tomlPath, []byte(tb.String()), 0644); err != nil {
 		t.Fatalf("failed write test config: %v", err)
 	}
-	return path
+
+	//write env
+	if err := os.WriteFile(envPath, []byte(eb.String()), envPerm); err != nil {
+		t.Fatalf("failed write test env: %v", err)
+	}
+	return tomlPath
+}
+
+func defaultCfgMap() map[string]string {
+	return map[string]string{
+		"env_file":       `""`,
+		"cache_root":     `"srv/cache"`,
+		"mirror_urls":    `["https://mirror.example.com"]`,
+		"mirrored_repos": `["core", "extra"]`,
+		"port":           `"8090"`,
+		"PKGSTASH_TOKEN": "testtoken",
+	}
 }
 
 func TestReadConfig(t *testing.T) {
-	path := writeConfigFile(t, `
-cache_root = "srv/cache"
-mirror_urls = ["https://mirror.example.com"]
-mirrored_repos = ["core", "extra"]
-port = "8090"
-
-[auth]
-token = "testtoken"
-`)
+	cfgMap := defaultCfgMap()
+	path := writeConfigFiles(t, cfgMap, 0600)
 
 	cfg, err := ReadConfig(path)
 	if err != nil {
@@ -38,15 +66,9 @@ token = "testtoken"
 }
 
 func TestMissingCacheRoot(t *testing.T) {
-	path := writeConfigFile(t, `
-mirror_urls = ["https://mirror.example.com"]
-mirrored_repos = ["core", "extra"]
-port = "8090"
-
-[auth]
-token = "testtoken"
-`)
-
+	cfgMap := defaultCfgMap()
+	cfgMap["cache_root"] = ""
+	path := writeConfigFiles(t, cfgMap, 0600)
 	_, err := ReadConfig(path)
 	if err == nil {
 		t.Fatal("expected err got nil")
@@ -54,14 +76,9 @@ token = "testtoken"
 }
 
 func TestMissingMirrorUrls(t *testing.T) {
-	path := writeConfigFile(t, `
-cache_root = "srv/cache"
-mirrored_repos = ["core", "extra"]
-port = "8090"
-
-[auth]
-token = "testtoken"
-`)
+	cfgMap := defaultCfgMap()
+	delete(cfgMap, "mirror_urls")
+	path := writeConfigFiles(t, cfgMap, 0600)
 
 	_, err := ReadConfig(path)
 	if err == nil {
@@ -70,14 +87,9 @@ token = "testtoken"
 }
 
 func TestMissingMirroredRepos(t *testing.T) {
-	path := writeConfigFile(t, `
-cache_root = "srv/cache"
-mirror_urls = ["https://mirror.example.com"]
-port = "8090"
-
-[auth]
-token = "testtoken"
-`)
+	cfgMap := defaultCfgMap()
+	delete(cfgMap, "mirrored_repos")
+	path := writeConfigFiles(t, cfgMap, 0600)
 
 	_, err := ReadConfig(path)
 	if err == nil {
@@ -86,14 +98,9 @@ token = "testtoken"
 }
 
 func TestMissingPort(t *testing.T) {
-	path := writeConfigFile(t, `
-cache_root = "srv/cache"
-mirror_urls = ["https://mirror.example.com"]
-mirrored_repos = ["core", "extra"]
-
-[auth]
-token = "testtoken"
-`)
+	cfgMap := defaultCfgMap()
+	cfgMap["port"] = ""
+	path := writeConfigFiles(t, cfgMap, 0600)
 
 	_, err := ReadConfig(path)
 	if err == nil {
@@ -102,14 +109,9 @@ token = "testtoken"
 }
 
 func TestMissingAuthToken(t *testing.T) {
-	path := writeConfigFile(t, `
-cache_root = "srv/cache"
-mirror_urls = ["https://mirror.example.com"]
-mirrored_repos = ["core", "extra"]
-port = "8090"
-
-[auth]
-`)
+	cfgMap := defaultCfgMap()
+	cfgMap["PKGSTASH_TOKEN"] = ""
+	path := writeConfigFiles(t, cfgMap, 0600)
 
 	_, err := ReadConfig(path)
 	if err == nil {
@@ -127,10 +129,51 @@ func TestMissingFile(t *testing.T) {
 }
 
 func TestInvalidToml(t *testing.T) {
-	path := writeConfigFile(t, `
-cache_root = [srv/cache]
-`)
+	path := filepath.Join(t.TempDir(), "bad.toml")
+	if err := os.WriteFile(path, []byte("cache_root = [srv/cache]"), 0644); err != nil {
+		t.Fatalf("failed write test config: %v", err)
+	}
 
+	_, err := ReadConfig(path)
+	if err == nil {
+		t.Fatal("expected err got nil")
+	}
+
+}
+
+func TestWrongPermissionsEnv(t *testing.T) {
+	cfgMap := defaultCfgMap()
+	path := writeConfigFiles(t, cfgMap, 0644)
+	_, err := ReadConfig(path)
+	if err == nil {
+		t.Fatal("expected err got nil")
+	}
+}
+
+func TestEmptyEnv(t *testing.T) {
+	cfgMap := defaultCfgMap()
+	delete(cfgMap, "PKGSTASH_TOKEN")
+	path := writeConfigFiles(t, cfgMap, 0600)
+	_, err := ReadConfig(path)
+	if err == nil {
+		t.Fatal("expected err got nil")
+	}
+}
+
+func TestEmptyKeyEnv(t *testing.T) {
+	cfgMap := defaultCfgMap()
+	cfgMap["PKGSTASH_TOKEN"] = ""
+	path := writeConfigFiles(t, cfgMap, 0600)
+	_, err := ReadConfig(path)
+	if err == nil {
+		t.Fatal("expected err got nil")
+	}
+}
+
+func TestDefaultToken(t *testing.T) {
+	cfgMap := defaultCfgMap()
+	cfgMap["PKGSTASH_TOKEN"] = "changeme"
+	path := writeConfigFiles(t, cfgMap, 0600)
 	_, err := ReadConfig(path)
 	if err == nil {
 		t.Fatal("expected err got nil")

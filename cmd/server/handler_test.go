@@ -41,8 +41,8 @@ func newTestServer(t *testing.T, mirrorHandler http.HandlerFunc) (*httptest.Serv
 		t.Fatalf("failed to create cache: %v", err)
 	}
 	cfg := &Config{
-		Port: "0",
-		Auth: AuthConfig{Token: "testtoken"},
+		Port:  "0",
+		Token: "testtoken",
 	}
 	logLevel := new(slog.LevelVar)
 	srv := &Server{
