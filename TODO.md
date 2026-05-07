@@ -1,11 +1,16 @@
-- Complete testing
-- Deployment(PKGBUILD, bootstrap script?)
+- Deployment
+    - PKGBUILD
+    - bootstrap script
+    - ~ci testing, lint, gosec, vulncheck~
+    - ~graceful shutdown~
+    - cd build binary, package
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
 - clean cache of old files
 - implement streaming
 - Add chi for mux
 - Build server/tool
 - Think about: arch doesn't like partial upgrades, round robin fetching the db files might be an issue
+- ~Complete testing~
 - ~Add better logging for errors, filename more deatail~
     - ~package main~
     - ~internal/cache~

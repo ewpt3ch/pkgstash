@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/ewpt3ch/pkgstash/internal/cache"
@@ -53,6 +56,8 @@ func main() {
 		slog.Error("failed to create cache", "err", err)
 		os.Exit(1)
 	}
+	defer c.Close()
+
 	srv := &Server{
 		cfg:      cfg,
 		c:        c,
@@ -66,6 +71,7 @@ func main() {
 
 	if err := srv.c.Refresh(); err != nil {
 		slog.Error("failed to refesh db files", "err", err)
+		c.Close()
 		os.Exit(1)
 	}
 
@@ -75,10 +81,26 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	slog.Info("serving pkgstash", "root", cfg.CacheRoot, "port", cfg.Port)
-	if err = httpServe.ListenAndServe(); err != nil {
-		slog.Error("server failed", "err", err)
-		os.Exit(1)
-	}
+	// gracefully quit the server
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
+	go func() {
+		slog.Info("serving pkgstash", "root", cfg.CacheRoot, "port", cfg.Port)
+		if err = httpServe.ListenAndServe(); err != http.ErrServerClosed {
+			slog.Error("server failed", "err", err)
+			c.Close()
+			os.Exit(1)
+		}
+	}()
+
+	<-quit
+	slog.Info("shutting down")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := httpServe.Shutdown(ctx); err != nil {
+		slog.Error("shutdown failed", "err", err)
+	}
 }
