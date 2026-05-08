@@ -1,5 +1,5 @@
 env_file = "/etc/pkgstash/pkgstash.env"
-cache_root = "/home/ewpt3ch/dev/pkgstash/tmprepo"
+cache_root = "/srv/pkgstash"
 mirror_urls  = [
               "https://losangeles.mirror.pkgbuild.com/",
               "https://mirror.givebytes.net/archlinux/",
