@@ -26,9 +26,7 @@ jobs:
         run: go build -o deploy/pkgstash ./cmd/server
 
       - name: Package
-        run: >
-          tar cvzf pkgstash-${{ github.ref_name }}-x86_64.tar.gz  --tranform
-          's/^deploy/pkstash-${{ github.ref_name }}/' ./deploy/
+        run: tar cvzf pkgstash-${{ github.ref_name }}-x86_64.tar.gz ./deploy/
 
       - name: Generate checksum
         run: |
