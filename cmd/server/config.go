@@ -64,7 +64,7 @@ func (c *Config) loadToken(path string) error {
 	if info.Mode().Perm() != 0600 {
 		return fmt.Errorf("env file perms not secure, expected 0600 got %o", info.Mode().Perm())
 	}
-
+	//#nosec G304 -- config is known path
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return fmt.Errorf("failed to read env file: %v", err)
