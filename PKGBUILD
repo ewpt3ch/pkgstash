@@ -1,7 +1,7 @@
 # Maintainer: Eric Phillips <eric@ewpt3ch.dev>
 
 pkgname=pkgstash
-pkgver=0.0.3
+pkgver=0.0.4
 pkgrel=1
 pkgdesc='Sparse caching pacman server'
 arch=(x86_64)
@@ -11,7 +11,7 @@ license=(GPL-2.0-only)
 provides=(pkgstash)
 conflicts=(pkgstash)
 source=("https://github.com/ewpt3ch/${pkgname}/releases/download/v${pkgver}/pkgstash-v${pkgver}-$CARCH.tar.gz")
-sha256sums=('209a1036c9123c01fc4639ad17e88a6da7ee5d1c3951192e705f17ba590fbeb6')
+sha256sums=('0f94dc7d712b1df4383dce521ffc388250f6703a69a0210a6277ac31f0cd918e')
 
 package() {
   cd deploy

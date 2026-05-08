@@ -223,7 +223,7 @@ func TestCreateSymlinks(t *testing.T) {
 
 	for _, repo := range repos {
 		lnfile := filepath.Join(repo, "os/x86_64", repo+".db")
-		expected := lnfile + ".tar.gz"
+		expected := repo + ".db.tar.gz"
 		lnval, err := cr.Readlink(lnfile)
 		if err != nil {
 			t.Errorf("%s has no link: %v", repo, err)

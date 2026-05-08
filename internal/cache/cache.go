@@ -93,7 +93,7 @@ func checkSymLinks(cr *os.Root, repos []string) error {
 			return err
 		}
 		lnPath := filepath.Join(dirPath, repo+".db")
-		srcPath := filepath.Join(dirPath, repo+".db.tar.gz")
+		srcPath := repo + ".db.tar.gz"
 		if _, err := cr.Lstat(lnPath); err == nil {
 			continue // link exists
 		}
