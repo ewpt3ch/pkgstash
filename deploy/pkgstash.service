@@ -7,7 +7,7 @@ StartLimitBurst=5
 
 [Service]
 Type=simple
-ExecStart=/usr/local/bin/pkgstash --config /etd/pkgstash/pkgstash.toml
+ExecStart=/usr/bin/pkgstash --config /etc/pkgstash/pkgstash.toml
 User=pkgstash
 Group=pkgstash
 Restart=on-failure
