@@ -1,0 +1,39 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: './go.mod'
+
+      - name: Build
+        run: go build -o deploy/pkgstash ./cmd/server
+
+      - name: Package
+        run: tar cvzf pkgstash-${{ github.ref_name }}-x86_64.tar.gz ./deploy/
+
+      - name: Generate checksum
+        run: |
+          NAME=pkgstash-${{ github.ref_name }}-x86_64.tar.gz
+          sha256sum $NAME > $NAME.checksum
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: |
+            pkgstash-${{ github.ref_name }}-x86_64.tar.gz
+            pkgstash-${{ github.ref_name }}-x86_64.tar.gz.checksum
