@@ -1,13 +1,14 @@
 - Deployment
-    - PKGBUILD
-    - bootstrap script
-    - ~ci testing, lint, gosec, vulncheck~
     - ci check golangci-lint docs
+    - fix ownder and perms and check on .env file for install
+        we want 0640 and root:pkgstash
+    - ~PKGBUILD~
+    - ~ci testing, lint, gosec, vulncheck~
     - ~graceful shutdown~
-    - cd build binary, package
+    - ~cd build binary, package~
+- implement streaming
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
 - clean cache of old files
-- implement streaming
 - Add chi for mux
 - Build server/tool
 - Think about: arch doesn't like partial upgrades, round robin fetching the db files might be an issue
