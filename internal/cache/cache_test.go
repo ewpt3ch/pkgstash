@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
@@ -204,5 +206,30 @@ func TestFetchRetryNonExist(t *testing.T) {
 	}
 	if upstreamErr.StatusCode != http.StatusNotFound {
 		t.Errorf("expected 404 got %d", upstreamErr.StatusCode)
+	}
+}
+
+func TestCreateSymlinks(t *testing.T) {
+	repos := []string{"core", "extra"}
+	tmp := t.TempDir()
+	cr, err := os.OpenRoot(tmp)
+	if err != nil {
+		t.Fatalf("unable to create tmp dir: %v", err)
+	}
+
+	if err := checkSymLinks(cr, repos); err != nil {
+		t.Fatalf("error creating links: %v", err)
+	}
+
+	for _, repo := range repos {
+		lnfile := filepath.Join(repo, "os/x86_64", repo+".db")
+		expected := lnfile + ".tar.gz"
+		lnval, err := cr.Readlink(lnfile)
+		if err != nil {
+			t.Errorf("%s has no link: %v", repo, err)
+		}
+		if lnval != expected {
+			t.Errorf("expected %s got %s", expected, lnval)
+		}
 	}
 }
