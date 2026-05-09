@@ -1,7 +1,7 @@
 # Maintainer: Eric Phillips <eric@ewpt3ch.dev>
 
 pkgname=pkgstash
-pkgver=0.1.0
+pkgver=0.1.1
 pkgrel=1
 pkgdesc='Sparse caching pacman server'
 arch=(x86_64)
