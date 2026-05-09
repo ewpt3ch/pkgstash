@@ -54,7 +54,7 @@ func defaultCfgMap() map[string]string {
 
 func TestReadConfig(t *testing.T) {
 	cfgMap := defaultCfgMap()
-	path := writeConfigFiles(t, cfgMap, 0600)
+	path := writeConfigFiles(t, cfgMap, 0640)
 
 	cfg, err := ReadConfig(path)
 	if err != nil {

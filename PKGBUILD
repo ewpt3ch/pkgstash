@@ -10,7 +10,7 @@ backup=(etc/pkgstash/pkgstash.toml etc/pkgstash/pkgstash.env)
 license=(GPL-2.0-only)
 install=pkgstash.install
 source=("https://github.com/ewpt3ch/${pkgname}/releases/download/v${pkgver}/pkgstash-v${pkgver}-$CARCH.tar.gz")
-sha256sums=('ccad5b513ed37b5c626c74f783127f2fb468b53080fc6deb3e4e44e1e7e99e99')
+sha256sums=('e1eed03e58259f037c71459f729b6544ff02264dc7243107bc9b0ed25b854e28')
 
 package() {
   cd deploy
