@@ -1,12 +1,11 @@
+- implement streaming
 - Deployment
     - ci check golangci-lint docs
-    - fix ownder and perms and check on .env file for install
-        we want 0640 and root:pkgstash
+    - ~fix owner and perms and check on .env file for install~
     - ~PKGBUILD~
     - ~ci testing, lint, gosec, vulncheck~
     - ~graceful shutdown~
     - ~cd build binary, package~
-- implement streaming
 - More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
 - clean cache of old files
 - Add chi for mux
