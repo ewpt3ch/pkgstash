@@ -33,8 +33,9 @@ type CacheConfig struct {
 }
 
 type inFlight struct {
-	done chan struct{}
-	err  error
+	tmpPath string
+	done    chan struct{}
+	err     error
 }
 
 type CacheFile struct {

@@ -4,6 +4,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"path/filepath"
 )
 
@@ -13,7 +14,7 @@ func (c *Cache) nextMirror() string {
 	return c.cfg.mirrorURLs[idx%mirrorCount]
 }
 
-func (c *Cache) downloadToDisk(url, relPath string) error {
+func (c *Cache) downloadToDisk(url string, tmpFile *os.File) error {
 	slog.Info("fetching", "url", url)
 
 	// set the user agent
@@ -38,41 +39,27 @@ func (c *Cache) downloadToDisk(url, relPath string) error {
 		}
 	}()
 
-	// make sure the dir structure exists
-	err = c.cr.MkdirAll(filepath.Dir(relPath), 0750)
-	if err != nil {
-		return err
-	}
-
-	// use a tmp file for the initial fetch in case it fails
-	tmpPath := relPath + ".tmp"
-	tmpFile, err := c.cr.Create(tmpPath)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		if closeErr := tmpFile.Close(); closeErr != nil {
-			err = closeErr
-		}
-	}()
-
 	_, err = io.Copy(tmpFile, resp.Body)
 	if err != nil {
-		removeErr := c.cr.Remove(tmpPath)
-		if removeErr != nil {
-			slog.Warn("failed to remove temp file", "path", tmpPath, "err", removeErr)
-		}
-		return err
-	}
-
-	// mv file to final location
-	err = c.cr.Rename(tmpPath, relPath)
-	if err != nil {
-		removeErr := c.cr.Remove(tmpPath)
-		if removeErr != nil {
-			slog.Warn("failed to remove temp file", "path", tmpPath, "err", removeErr)
-		}
 		return err
 	}
 	return nil
+}
+
+func (c *Cache) getCachedFile(relPath string) (*CacheFile, error) {
+	info, err := c.cr.Stat(relPath)
+	if err != nil {
+		return nil, err
+	}
+
+	f, err := c.cr.Open(relPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CacheFile{
+		Reader:   f,
+		Size:     info.Size(),
+		Filename: filepath.Base(relPath),
+	}, nil
 }
