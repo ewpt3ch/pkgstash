@@ -233,3 +233,68 @@ func TestCreateSymlinks(t *testing.T) {
 		}
 	}
 }
+
+func TestGetStreamMultiplClient(t *testing.T) {
+	firstBytesSend := make(chan struct{})
+	const expectedOne = "This is fake file contents"
+	const expectedTwo = "More fake file contents"
+	expected := expectedOne + expectedTwo
+
+	svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//nolint:errcheck //ephemeral no need to check
+		fmt.Fprint(w, expectedOne)
+		w.(http.Flusher).Flush()
+		close(firstBytesSend)
+		time.Sleep(2 * time.Second)
+		fmt.Fprint(w, expectedTwo)
+	}))
+
+	c := newTestCache(t, []string{svr.URL + "/"})
+	c.client.Timeout = 10 * time.Second
+
+	type fetchResult struct {
+		data []byte
+		err  error
+	}
+
+	results := make(chan fetchResult, 2)
+
+	for range 2 {
+		go func() {
+			cf, err := c.Fetch("fakefile")
+			if err != nil {
+				results <- fetchResult{err: err}
+				return
+			}
+			defer cf.Reader.Close()
+			data, err := io.ReadAll(cf.Reader)
+			results <- fetchResult{data: data, err: err}
+		}()
+	}
+
+	<-firstBytesSend
+	c.inFlightMu.Lock()
+	_, ok := c.inFlight["fakefile"]
+	c.inFlightMu.Unlock()
+	if !ok {
+		t.Errorf("no matching key in map: %v", c.inFlight)
+	}
+
+	for range 2 {
+		result := <-results
+		if result.err != nil {
+			t.Errorf("a fetch failed: %v", result.err)
+		}
+		if !bytes.Equal(result.data, []byte(expected)) {
+			t.Errorf("expected result to contain %s got %s", expected, result.data)
+		}
+	}
+
+	data, err := c.cr.ReadFile("fakefile")
+	if err != nil {
+		t.Fatalf("Error reading file back: %v", err)
+	}
+	if !bytes.Equal(data, []byte(expected)) {
+		t.Errorf("expected file to contain %s got %s", expected, data)
+	}
+}

@@ -10,19 +10,18 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"golang.org/x/sync/singleflight"
 )
 
 const userAgent = "pacman/7.1.0 (Linux x86_64) libalpm/16.0.1"
 
 type Cache struct {
-	cfg       CacheConfig
-	cr        *os.Root
-	mirrorIdx atomic.Uint64
-	sf        singleflight.Group //prevents duplicate downloads
-	mu        sync.Mutex
-	client    http.Client
+	cfg        CacheConfig
+	cr         *os.Root
+	mirrorIdx  atomic.Uint64
+	refreshMu  sync.Mutex
+	client     http.Client
+	inFlight   map[string]*inFlight
+	inFlightMu sync.Mutex
 }
 
 type CacheConfig struct {
@@ -31,6 +30,11 @@ type CacheConfig struct {
 	DialTimeout           time.Duration
 	ResponseHeaderTimeout time.Duration
 	ClientTimeout         time.Duration
+}
+
+type inFlight struct {
+	done chan struct{}
+	err  error
 }
 
 type CacheFile struct {
@@ -71,6 +75,7 @@ func NewCache(cacheRoot string, mirrorURLs []string, mirroredRepos []string) (*C
 			Timeout:   cfg.ClientTimeout,
 			Transport: transport,
 		},
+		inFlight: make(map[string]*inFlight),
 	}, nil
 }
 

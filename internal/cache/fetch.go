@@ -7,6 +7,9 @@ import (
 )
 
 func (c *Cache) Fetch(relPath string) (*CacheFile, error) {
+	// relPath is relative to the localRoot
+	// ie relPath includes /{repo}/os/{arch}/ and the actual name linux-x.x.x.pkg.tar.zst
+
 	// return file directly if exists in cache
 	cf, err := c.getCachedFile(relPath)
 	if err == nil {
@@ -14,24 +17,11 @@ func (c *Cache) Fetch(relPath string) (*CacheFile, error) {
 	}
 
 	// fetch file from upstream
-	_, err, _ = c.sf.Do(relPath, func() (any, error) {
-		slog.Debug("calling fetch", "file", relPath)
-		return nil, c.fetch(relPath)
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	cf, err = c.getCachedFile(relPath)
-	if err != nil {
-		return nil, err
-	}
-	return cf, nil
+	slog.Debug("calling fetch", "file", relPath)
+	return nil, c.getStream(relPath)
 }
 
-func (c *Cache) fetch(relPath string) error {
-	// relPath is relative to the localRoot
-	// ie relPath includes /{repo}/os/{arch}/ and the actual name linux-x.x.x.pkg.tar.zst
+func (c *Cache) getStream(relPath string) error {
 
 	// declare vars outside loop
 	var err error
