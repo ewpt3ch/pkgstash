@@ -9,6 +9,8 @@ import (
 )
 
 func (c *Cache) downloadWrangle(relPath string, flight *inFlight, tmpFile *os.File) {
+
+	slog.Debug("wrangle starting", "relPath", relPath)
 	// defer map cleanup and signal client handle done
 	defer c.cleanupFlight(relPath, flight)
 
@@ -37,6 +39,7 @@ func (c *Cache) downloadWrangle(relPath string, flight *inFlight, tmpFile *os.Fi
 		}
 		return
 	}
+	slog.Debug("wrangle download complete", "err", err)
 
 	// mv file to final location
 	err = c.cr.Rename(flight.tmpPath, relPath)
@@ -47,7 +50,7 @@ func (c *Cache) downloadWrangle(relPath string, flight *inFlight, tmpFile *os.Fi
 		}
 		return
 	}
-	return
+	slog.Debug("file moved to final location", "err", err)
 }
 
 func (c *Cache) downloadToDisk(url string, tmpFile *os.File) error {
@@ -79,6 +82,9 @@ func (c *Cache) downloadToDisk(url string, tmpFile *os.File) error {
 	if err != nil {
 		return err
 	}
+	if err = tmpFile.Sync(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -86,5 +92,6 @@ func (c *Cache) cleanupFlight(key string, f *inFlight) {
 	c.inFlightMu.Lock()
 	delete(c.inFlight, key)
 	c.inFlightMu.Unlock()
+	slog.Debug("closing done channel")
 	close(f.done)
 }

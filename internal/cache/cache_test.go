@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -22,6 +23,8 @@ func newTestServer(t *testing.T, handler http.HandlerFunc) *httptest.Server {
 
 func newTestCache(t *testing.T, mirrorURLs []string) *Cache {
 	t.Helper()
+	// set slog to debug
+	slog.SetLogLoggerLevel(slog.LevelDebug)
 	mirroredRepos := []string{"core", "extra"}
 	c, err := NewCache(t.TempDir(), mirrorURLs, mirroredRepos)
 	if err != nil {
@@ -33,7 +36,6 @@ func newTestCache(t *testing.T, mirrorURLs []string) *Cache {
 
 func TestCacheHit(t *testing.T) {
 	const expected = "This is fake file contents"
-
 	c := newTestCache(t, []string{"http://example.com/"})
 	tmpFileName := "fakeFile"
 	err := c.cr.WriteFile(tmpFileName, []byte(expected), 0644)
@@ -78,10 +80,12 @@ func TestCacheMissExists(t *testing.T) {
 
 	c := newTestCache(t, []string{svr.URL + "/"})
 
-	_, err := c.Fetch("fakefile")
+	cf, err := c.Fetch("fakefile")
 	if err != nil {
 		t.Fatalf("Fetch failed %v", err)
 	}
+	io.Copy(io.Discard, cf.Reader)
+	cf.Reader.Close()
 
 	data, err := c.cr.ReadFile("fakefile")
 	if err != nil {

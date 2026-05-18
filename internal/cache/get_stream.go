@@ -35,6 +35,7 @@ func (c *Cache) getStream(relPath string) (*inFlight, *os.File, error) {
 
 	flight := &inFlight{
 		tmpPath: tmpPath,
+		done:    make(chan struct{}),
 	}
 
 	c.inFlight[relPath] = flight
