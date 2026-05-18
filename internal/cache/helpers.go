@@ -1,10 +1,7 @@
 package cache
 
 import (
-	"io"
-	"log/slog"
-	"net/http"
-	"os"
+	"fmt"
 	"path/filepath"
 )
 
@@ -12,38 +9,6 @@ func (c *Cache) nextMirror() string {
 	idx := c.mirrorIdx.Add(1) - 1
 	mirrorCount := uint64(len(c.cfg.mirrorURLs))
 	return c.cfg.mirrorURLs[idx%mirrorCount]
-}
-
-func (c *Cache) downloadToDisk(url string, tmpFile *os.File) error {
-	slog.Info("fetching", "url", url)
-
-	// set the user agent
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		slog.Error("failed create request", "err", err)
-	}
-	req.Header.Set("User-Agent", userAgent)
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		slog.Warn("fetch failed", "url", url, "err", err)
-		return err
-	}
-	if resp.StatusCode != 200 {
-		slog.Info("fetch returned", "url", url, "status", resp.StatusCode)
-		return &UpstreamError{StatusCode: resp.StatusCode}
-	}
-	defer func() {
-		if closeErr := resp.Body.Close(); closeErr != nil {
-			err = closeErr
-		}
-	}()
-
-	_, err = io.Copy(tmpFile, resp.Body)
-	if err != nil {
-		return err
-	}
-	return nil
 }
 
 func (c *Cache) getCachedFile(relPath string) (*CacheFile, error) {
@@ -62,4 +27,16 @@ func (c *Cache) getCachedFile(relPath string) (*CacheFile, error) {
 		Size:     info.Size(),
 		Filename: filepath.Base(relPath),
 	}, nil
+}
+
+type UpstreamError struct {
+	StatusCode int
+}
+
+func (e *UpstreamError) Error() string {
+	return fmt.Sprintf("upstream returned %d", e.StatusCode)
+}
+
+func (c *Cache) Close() error {
+	return c.cr.Close()
 }

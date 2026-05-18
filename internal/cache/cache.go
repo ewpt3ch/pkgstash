@@ -1,8 +1,8 @@
 package cache
 
 import (
-	"fmt"
 	"io"
+	"log/slog"
 	"net"
 	"net/http"
 	"os"
@@ -80,16 +80,29 @@ func NewCache(cacheRoot string, mirrorURLs []string, mirroredRepos []string) (*C
 	}, nil
 }
 
-func (c *Cache) Close() error {
-	return c.cr.Close()
-}
+func (c *Cache) Fetch(relPath string) (*CacheFile, error) {
+	// relPath is relative to the localRoot
+	// ie relPath includes /{repo}/os/{arch}/ and the actual name linux-x.x.x.pkg.tar.zst
 
-type UpstreamError struct {
-	StatusCode int
-}
+	// return file directly if exists in cache
+	cf, err := c.getCachedFile(relPath)
+	if err == nil {
+		return cf, nil
+	}
 
-func (e *UpstreamError) Error() string {
-	return fmt.Sprintf("upstream returned %d", e.StatusCode)
+	// fetch file from upstream
+	slog.Debug("calling fetch", "file", relPath)
+	flight, file, err := c.getStream(relPath)
+	if err != nil {
+		return nil, err
+	}
+
+	return &CacheFile{
+		Reader:   &tailer{f: file, flight: flight},
+		Size:     -1,
+		Filename: filepath.Base(relPath),
+	}, nil
+
 }
 
 func checkSymLinks(cr *os.Root, repos []string) error {
