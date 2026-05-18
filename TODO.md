@@ -1,4 +1,6 @@
 - implement streaming
+    - ~implementation~
+    - refactor cache tests to match new interface using testify
 - Deployment
     - ci check golangci-lint docs
     - ~fix owner and perms and check on .env file for install~

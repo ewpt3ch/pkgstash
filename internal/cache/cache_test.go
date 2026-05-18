@@ -2,7 +2,6 @@ package cache
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -12,6 +11,9 @@ import (
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func newTestServer(t *testing.T, handler http.HandlerFunc) *httptest.Server {
@@ -34,7 +36,10 @@ func newTestCache(t *testing.T, mirrorURLs []string) *Cache {
 	return c
 }
 
-func TestCacheHit(t *testing.T) {
+func TestFetch(t *testing.T) {
+	// test happy paths on fetch, the error paths all return through
+	// the handler so need to be tested from the handler
+	//Test: cache hit
 	const expected = "This is fake file contents"
 	c := newTestCache(t, []string{"http://example.com/"})
 	tmpFileName := "fakeFile"
@@ -44,176 +49,36 @@ func TestCacheHit(t *testing.T) {
 	}
 
 	cachedFile, err := c.Fetch(tmpFileName)
-	if err != nil {
-		t.Fatalf("failed to fetch file: %v", err)
-	}
-	//nolint:errcheck //ephemeral no need to check
-	defer cachedFile.Reader.Close()
-
-	if cachedFile.Filename != tmpFileName {
-		t.Errorf("expected filename %s got %s", tmpFileName, cachedFile.Filename)
-	}
-
-	if int64(len(expected)) != cachedFile.Size {
-		t.Errorf("expected %d got %d", len(expected), cachedFile.Size)
-	}
-
+	require.NoError(t, err, "expected no error got %v", err)
+	require.NotNil(t, cachedFile, "expected CacheFile got nil")
+	assert.Equal(t, tmpFileName, cachedFile.Filename, "expected tmp %s to equal cached %s", tmpFileName, cachedFile.Filename)
+	assert.Equal(t, int64(len(expected)), cachedFile.Size)
 	data, err := io.ReadAll(cachedFile.Reader)
-	if err != nil {
-		t.Fatalf("error reading file back: %v", err)
-	}
-	//nolint:errcheck //ephemeral no need to check
-	defer cachedFile.Reader.Close()
+	require.NoError(t, err, "failed to read back file %v", err)
+	assert.Equal(t, []byte(expected), data, "expected: %s; got: %s", expected, string(data))
 
-	if !bytes.Equal(data, []byte(expected)) {
-		t.Errorf("expected file to contain %s got %s", expected, data)
-	}
-}
-
-func TestCacheMissExists(t *testing.T) {
-	const expected = "This is fake file contents"
-
+	// Test: cache miss file exists
 	svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//nolint:errcheck //ephemeral no need to check
 		fmt.Fprint(w, expected)
 	}))
 
-	c := newTestCache(t, []string{svr.URL + "/"})
+	c = newTestCache(t, []string{svr.URL + "/"})
 
 	cf, err := c.Fetch("fakefile")
-	if err != nil {
-		t.Fatalf("Fetch failed %v", err)
-	}
+	require.NoError(t, err, "expected no error got: %v", err)
+	require.NotNil(t, cf, "expected CacheFile got nil")
+
 	io.Copy(io.Discard, cf.Reader)
 	cf.Reader.Close()
 
-	data, err := c.cr.ReadFile("fakefile")
-	if err != nil {
-		t.Fatalf("Error reading file back: %v", err)
-	}
-	if !bytes.Equal(data, []byte(expected)) {
-		t.Errorf("expected file to contain %s got %s", expected, data)
-	}
-}
-
-func TestFetchNotFound(t *testing.T) {
-	svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	}))
-
-	c := newTestCache(t, []string{svr.URL + "/"})
-
-	_, err := c.Fetch("fakefile")
-	var upstreamErr *UpstreamError
-	if !errors.As(err, &upstreamErr) {
-		t.Fatalf("expected UpstreamError got %v", err)
-	}
-	if upstreamErr.StatusCode != http.StatusNotFound {
-		t.Errorf("expected 404 got %d", upstreamErr.StatusCode)
-	}
-}
-
-func TestFetchSrvError(t *testing.T) {
-	svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusInternalServerError)
-	}))
-
-	c := newTestCache(t, []string{svr.URL + "/"})
-
-	_, err := c.Fetch("fakefile")
-	var upstreamErr *UpstreamError
-	if !errors.As(err, &upstreamErr) {
-		t.Fatalf("expected UpstreamError fot %v", err)
-	}
-	if upstreamErr.StatusCode != http.StatusInternalServerError {
-		t.Errorf("expected 500 got %d", upstreamErr.StatusCode)
-	}
-}
-
-func TestFetchSrvDead(t *testing.T) {
-	svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		select {
-		case <-r.Context().Done():
-			return
-		case <-time.After(60 * time.Second):
-			//nolint:errcheck //ephemeral no need to check
-			fmt.Fprint(w, "too late")
-		}
-	}))
-	defer svr.Close()
-
-	c := newTestCache(t, []string{svr.URL + "/"})
-
-	_, err := c.Fetch("fakefile")
-	if err == nil {
-		t.Fatal("expected err got nil")
-	}
-
-	if _, ok := errors.AsType[*UpstreamError](err); ok {
-		t.Error("expected network error not UpstreamError")
-	}
-}
-
-func TestFetchRetryExists(t *testing.T) {
-	const expected = "This is fake file contents"
-
-	svr1 := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	}))
-
-	svr2 := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//nolint:errcheck //ephemeral no need to check
-		fmt.Fprint(w, expected)
-	}))
-	fakeURLs := []string{
-		svr1.URL + "/",
-		svr2.URL + "/",
-	}
-
-	c := newTestCache(t, fakeURLs)
-
-	_, err := c.Fetch("fakefile")
-	if err != nil {
-		t.Fatalf("fetch failed: %v", err)
-	}
-
-	data, err := c.cr.ReadFile("fakefile")
-	if err != nil {
-		t.Fatalf("error reading file back: %v", err)
-	}
-	if !bytes.Equal(data, []byte(expected)) {
-		t.Errorf("expected file to contain %s got %s", expected, data)
-	}
-}
-
-func TestFetchRetryNonExist(t *testing.T) {
-
-	svr1 := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	}))
-
-	svr2 := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotFound)
-	}))
-
-	fakeURLs := []string{
-		svr1.URL + "/",
-		svr2.URL + "/",
-	}
-
-	c := newTestCache(t, fakeURLs)
-
-	_, err := c.Fetch("fakefile")
-	var upstreamErr *UpstreamError
-	if !errors.As(err, &upstreamErr) {
-		t.Errorf("expected UpstreamError got %v", err)
-	}
-	if upstreamErr.StatusCode != http.StatusNotFound {
-		t.Errorf("expected 404 got %d", upstreamErr.StatusCode)
-	}
+	data, err = c.cr.ReadFile("fakefile")
+	require.NoError(t, err, "expected no error got: %v", err)
+	assert.Equal(t, []byte(expected), data, "expected: %s; got: %s", expected, string(data))
 }
 
 func TestCreateSymlinks(t *testing.T) {
+	// reafactor to use testify
 	repos := []string{"core", "extra"}
 	tmp := t.TempDir()
 	cr, err := os.OpenRoot(tmp)
@@ -239,6 +104,8 @@ func TestCreateSymlinks(t *testing.T) {
 }
 
 func TestGetStreamMultiplClient(t *testing.T) {
+	// refactor tests to use testify
+	// Test: test mutiple clients
 	firstBytesSend := make(chan struct{})
 	const expectedOne = "This is fake file contents"
 	const expectedTwo = "More fake file contents"
@@ -301,4 +168,18 @@ func TestGetStreamMultiplClient(t *testing.T) {
 	if !bytes.Equal(data, []byte(expected)) {
 		t.Errorf("expected file to contain %s got %s", expected, data)
 	}
+}
+
+func TestDownloadWrangle(t *testing.T) {
+	// Test: Upload error propagates to flight.err
+	// Test: Network error propagates to flight.err
+	// Test: retry works across mirror
+	// Test: cleanup runs on failure
+}
+
+func TestTailer(t *testing.T) {
+	// Test: reads available bytes
+	// Test: blocks until done
+	// Test: propagates flight.err
+	// Test: return true EOF
 }
