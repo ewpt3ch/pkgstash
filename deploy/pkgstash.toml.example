@@ -7,5 +7,5 @@ mirror_urls  = [
               ]
 # array of upstream repos this server caches see pacman.conf
 # or pacman docs for more info <core, extra, multilib>
-mirrored_repos = ["core", "extra", "multilib"]
+mirrored_repos = ["core", "extra"]
 port        = "8090"

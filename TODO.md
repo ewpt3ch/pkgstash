@@ -1,4 +1,5 @@
 - Deployment
+    - automated changelog publishing
     - ci check golangci-lint docs
     - ~fix owner and perms and check on .env file for install~
     - ~PKGBUILD~
