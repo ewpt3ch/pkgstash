@@ -19,7 +19,7 @@ func (c *Cache) downloadWrangle(relPath string, flight *inFlight, tmpFile *os.Fi
 	// fetch pkgs from mirror with retry logic
 	for range len(c.cfg.mirrorURLs) {
 		url := c.nextMirror() + relPath
-		err = c.downloadToDisk(url, tmpFile)
+		err = c.downloadToDisk(url, flight, tmpFile)
 		if err == nil {
 			break
 		}
@@ -53,7 +53,7 @@ func (c *Cache) downloadWrangle(relPath string, flight *inFlight, tmpFile *os.Fi
 	slog.Debug("file moved to final location", "err", err)
 }
 
-func (c *Cache) downloadToDisk(url string, tmpFile *os.File) error {
+func (c *Cache) downloadToDisk(url string, flight *inFlight, tmpFile *os.File) error {
 	slog.Info("fetching", "url", url)
 
 	// set the user agent
@@ -78,6 +78,10 @@ func (c *Cache) downloadToDisk(url string, tmpFile *os.File) error {
 		}
 	}()
 
+	size := resp.ContentLength
+	flight.contentLength = size
+	close(flight.headerReady)
+
 	_, err = io.Copy(tmpFile, resp.Body)
 	if err != nil {
 		return err
@@ -92,6 +96,16 @@ func (c *Cache) cleanupFlight(key string, f *inFlight) {
 	c.inFlightMu.Lock()
 	delete(c.inFlight, key)
 	c.inFlightMu.Unlock()
-	slog.Debug("closing done channel")
-	close(f.done)
+	slog.Debug("closing channels")
+	safeClose(f.headerReady)
+	safeClose(f.done)
+}
+
+func safeClose(ch chan struct{}) {
+	select {
+	case <-ch:
+		// already closed
+	default:
+		close(ch)
+	}
 }

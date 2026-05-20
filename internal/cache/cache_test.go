@@ -2,6 +2,7 @@ package cache
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -35,6 +36,14 @@ func newTestCache(t *testing.T, mirrorURLs []string) *Cache {
 	}
 	c.client.Timeout = 500 * time.Millisecond
 	return c
+}
+
+func newTestFlight(tmpPath string) *inFlight {
+	return &inFlight{
+		tmpPath:     tmpPath,
+		headerReady: make(chan struct{}),
+		done:        make(chan struct{}),
+	}
 }
 
 func TestFetch(t *testing.T) {
@@ -172,6 +181,7 @@ func TestGetStreamMultiplClient(t *testing.T) {
 }
 
 func TestDownloadWrangle(t *testing.T) {
+	const expected = "This is fake file contents"
 	t.Run("Download error propagates to flight.err", func(t *testing.T) {
 		const expected = "This is fake file contents"
 		svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -182,10 +192,7 @@ func TestDownloadWrangle(t *testing.T) {
 		c := newTestCache(t, []string{svr.URL + "/"})
 		relPath := "fakefile"
 		tmpPath := "fakefile.tmp"
-		flight := &inFlight{
-			tmpPath: tmpPath,
-			done:    make(chan struct{}),
-		}
+		flight := newTestFlight(tmpPath)
 		tmpFile, err := c.cr.Create(tmpPath)
 		require.NoError(t, err, "failed open test file")
 
@@ -200,14 +207,10 @@ func TestDownloadWrangle(t *testing.T) {
 	})
 
 	t.Run("Network error propagates to flight.err", func(t *testing.T) {
-		const expected = "This is fake file contents"
 		c := newTestCache(t, []string{"http://127.0.0.1/"})
 		relPath := "fakefile"
 		tmpPath := "fakefile.tmp"
-		flight := &inFlight{
-			tmpPath: tmpPath,
-			done:    make(chan struct{}),
-		}
+		flight := newTestFlight(tmpPath)
 		tmpFile, err := c.cr.Create(tmpPath)
 		require.NoError(t, err, "failed open test file")
 
@@ -222,7 +225,6 @@ func TestDownloadWrangle(t *testing.T) {
 	})
 
 	t.Run("Retry works across mirror", func(t *testing.T) {
-		const expected = "This is fake file contents"
 		svrMiss := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			//nolint:errcheck //ephemeral no need to check
 			w.WriteHeader(http.StatusNotFound)
@@ -239,10 +241,7 @@ func TestDownloadWrangle(t *testing.T) {
 		})
 		relPath := "fakefile"
 		tmpPath := "fakefile.tmp"
-		flight := &inFlight{
-			tmpPath: tmpPath,
-			done:    make(chan struct{}),
-		}
+		flight := newTestFlight(tmpPath)
 		tmpFile, err := c.cr.Create(tmpPath)
 		require.NoError(t, err, "failed open test file")
 
@@ -257,7 +256,6 @@ func TestDownloadWrangle(t *testing.T) {
 	})
 
 	t.Run("Cleanup runs on failure", func(t *testing.T) {
-		const expected = "This is fake file contents"
 		svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			//nolint:errcheck //ephemeral no need to check
 			w.WriteHeader(http.StatusNotFound)
@@ -266,20 +264,53 @@ func TestDownloadWrangle(t *testing.T) {
 		c := newTestCache(t, []string{svr.URL + "/"})
 		relPath := "fakefile"
 		tmpPath := "fakefile.tmp"
-		flight := &inFlight{
-			tmpPath: tmpPath,
-			done:    make(chan struct{}),
-		}
+		flight := newTestFlight(tmpPath)
 		tmpFile, err := c.cr.Create(tmpPath)
 		require.NoError(t, err, "failed open test file")
 
 		c.downloadWrangle(relPath, flight, tmpFile)
 		_, err = os.Stat(tmpPath)
 		assert.ErrorIs(t, err, os.ErrNotExist)
+		select {
+		case <-flight.headerReady:
+			//closed
+		default:
+			t.Error("headerReady not closes")
+		}
+		select {
+		case <-flight.done:
+			//closed
+		default:
+			t.Error("done not closed")
+		}
 		c.inFlightMu.Lock()
 		_, ok := c.inFlight[relPath]
 		c.inFlightMu.Unlock()
 		assert.False(t, ok, "expected inFlight entry to be removed")
+	})
+
+	t.Run("Size propagates to flight", func(t *testing.T) {
+		svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			//nolint:errcheck //ephemeral no need to check
+			fmt.Fprintf(w, "%s", expected)
+		}))
+		c := newTestCache(t, []string{svr.URL + "/"})
+		relPath := "fakefile"
+		tmpPath := "fakefile.tmp"
+		flight := newTestFlight(tmpPath)
+		tmpFile, err := c.cr.Create(tmpPath)
+		require.NoError(t, err, "failed open test file")
+
+		c.downloadWrangle(relPath, flight, tmpFile)
+		var size int64
+		select {
+		case <-flight.headerReady:
+			size = flight.contentLength
+		case <-time.After(time.Second):
+			t.Fatal("content-length never got set")
+		}
+		assert.Equal(t, int64(len(expected)), size)
+
 	})
 }
 
@@ -314,7 +345,7 @@ func TestTailer(t *testing.T) {
 		require.NoError(t, err)
 
 		go func() {
-			for _ = range 3 {
+			for range 3 {
 				fmt.Fprintf(wf, "%s", expected)
 				time.Sleep(100 * time.Millisecond)
 			}
@@ -331,7 +362,25 @@ func TestTailer(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, []byte(strings.Repeat(expected, 3)), data)
 	})
-	// Test: blocks until done
-	// Test: propagates flight.err
-	// Test: return true EOF
+
+	t.Run("propagate flight.err", func(t *testing.T) {
+		expectedErr := errors.New("upstream failed")
+		tmpPath := filepath.Join(t.TempDir(), filename)
+
+		err := os.WriteFile(tmpPath, []byte{}, 0660)
+		require.NoError(t, err)
+
+		f, err := os.Open(tmpPath)
+		require.NoError(t, err)
+
+		flight := &inFlight{
+			done: make(chan struct{}),
+			err:  expectedErr,
+		}
+		close(flight.done)
+
+		tr := &tailer{f: f, flight: flight}
+		_, err = io.ReadAll(tr)
+		assert.ErrorIs(t, err, expectedErr)
+	})
 }

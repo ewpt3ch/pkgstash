@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fmt"
 	"io"
 	"log/slog"
 	"net"
@@ -33,9 +34,11 @@ type CacheConfig struct {
 }
 
 type inFlight struct {
-	tmpPath string
-	done    chan struct{}
-	err     error
+	tmpPath       string
+	headerReady   chan struct{}
+	contentLength int64
+	done          chan struct{}
+	err           error
 }
 
 type CacheFile struct {
@@ -97,9 +100,21 @@ func (c *Cache) Fetch(relPath string) (*CacheFile, error) {
 		return nil, err
 	}
 
+	var size int64
+	select {
+	case <-flight.headerReady:
+		size = flight.contentLength
+		err = flight.err
+	case <-time.After(5 * time.Second):
+		return nil, fmt.Errorf("upstream header timeout")
+	}
+	if err != nil {
+		return nil, err
+	}
+
 	return &CacheFile{
 		Reader:   &tailer{f: file, flight: flight},
-		Size:     -1,
+		Size:     size,
 		Filename: filepath.Base(relPath),
 	}, nil
 
