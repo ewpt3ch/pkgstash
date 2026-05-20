@@ -1,6 +1,3 @@
-- implement streaming
-    - ~implementation~
-    - refactor cache tests to match new interface using testify
 - Deployment
     - ci check golangci-lint docs
     - ~fix owner and perms and check on .env file for install~
@@ -13,6 +10,9 @@
 - Add chi for mux
 - Build server/tool
 - Think about: arch doesn't like partial upgrades, round robin fetching the db files might be an issue
+- ~implement streaming~
+    - ~implementation~
+    - ~refactor cache tests to match new interface using testify~
 - ~Complete testing~
 - ~Add better logging for errors, filename more deatail~
     - ~package main~
