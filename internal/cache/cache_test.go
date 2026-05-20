@@ -79,7 +79,9 @@ func TestFetch(t *testing.T) {
 	require.NoError(t, err, "expected no error got: %v", err)
 	require.NotNil(t, cf, "expected CacheFile got nil")
 
+	//nolint:errcheck //ephemeral no need to check
 	io.Copy(io.Discard, cf.Reader)
+	//nolint:errcheck //ephemeral no need to check
 	cf.Reader.Close()
 
 	data, err = c.cr.ReadFile("fakefile")
@@ -127,6 +129,7 @@ func TestGetStreamMultiplClient(t *testing.T) {
 		w.(http.Flusher).Flush()
 		close(firstBytesSend)
 		time.Sleep(2 * time.Second)
+		//nolint:errcheck //ephemeral no need to check
 		fmt.Fprint(w, expectedTwo)
 	}))
 
@@ -147,6 +150,7 @@ func TestGetStreamMultiplClient(t *testing.T) {
 				results <- fetchResult{err: err}
 				return
 			}
+			//nolint:errcheck //ephemeral no need to check
 			defer cf.Reader.Close()
 			data, err := io.ReadAll(cf.Reader)
 			results <- fetchResult{data: data, err: err}
@@ -183,7 +187,6 @@ func TestGetStreamMultiplClient(t *testing.T) {
 func TestDownloadWrangle(t *testing.T) {
 	const expected = "This is fake file contents"
 	t.Run("Download error propagates to flight.err", func(t *testing.T) {
-		const expected = "This is fake file contents"
 		svr := newTestServer(t, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			//nolint:errcheck //ephemeral no need to check
 			w.WriteHeader(http.StatusNotFound)
@@ -346,10 +349,13 @@ func TestTailer(t *testing.T) {
 
 		go func() {
 			for range 3 {
+				//nolint:errcheck //ephemeral no need to check
 				fmt.Fprintf(wf, "%s", expected)
 				time.Sleep(100 * time.Millisecond)
 			}
+			//nolint:errcheck //ephemeral no need to check
 			wf.Sync()
+			//nolint:errcheck //ephemeral no need to check
 			wf.Close()
 			close(flight.done)
 		}()
