@@ -18,7 +18,7 @@ func (s *Server) handlerRefresh(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if err := s.c.Refresh(); err != nil {
+	if err := s.rs.Sync(); err != nil {
 		slog.Error("refresh failed", "err", err)
 		http.Error(w, "refresh failed", http.StatusInternalServerError)
 		return

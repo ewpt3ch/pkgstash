@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/ewpt3ch/pkgstash/internal/cache"
+	"github.com/ewpt3ch/pkgstash/internal/repomaint"
 )
 
 var (
@@ -36,7 +37,10 @@ func newTestServer(t *testing.T, mirrorHandler http.HandlerFunc) (*httptest.Serv
 	mirror := httptest.NewServer(mirrorHandler)
 	t.Cleanup(func() { mirror.Close() })
 
-	c, err := cache.NewCache(t.TempDir(), []string{mirror.URL + "/"}, []string{"core"})
+	croot := t.TempDir()
+	mrepos := []string{"core"}
+
+	c, err := cache.NewCache(croot, []string{mirror.URL + "/"}, mrepos)
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)
 	}
@@ -44,10 +48,15 @@ func newTestServer(t *testing.T, mirrorHandler http.HandlerFunc) (*httptest.Serv
 		Port:  "0",
 		Token: "testtoken",
 	}
+	rs, err := repomaint.NewRepoSync(c, croot, mrepos)
+	if err != nil {
+		t.Fatalf("failed to create repomain: %v", err)
+	}
 	logLevel := new(slog.LevelVar)
 	srv := &Server{
 		cfg:      cfg,
 		c:        c,
+		rs:       rs,
 		logLevel: logLevel,
 	}
 

@@ -12,11 +12,13 @@ import (
 	"time"
 
 	"github.com/ewpt3ch/pkgstash/internal/cache"
+	"github.com/ewpt3ch/pkgstash/internal/repomaint"
 )
 
 type Server struct {
 	cfg      *Config
 	c        *cache.Cache
+	rs       *repomaint.RepoSync
 	logLevel *slog.LevelVar
 }
 
@@ -58,9 +60,15 @@ func main() {
 	}
 	defer c.Close() //nolint:errcheck // best effort cleanup on exit
 
+	rs, err := repomaint.NewRepoSync(c, cfg.CacheRoot, cfg.MirroredRepos)
+	if err != nil {
+		slog.Error("failed to create repomaint", "err", err)
+	}
+
 	srv := &Server{
 		cfg:      cfg,
 		c:        c,
+		rs:       rs,
 		logLevel: logLevel,
 	}
 
@@ -69,7 +77,7 @@ func main() {
 	mux.HandleFunc("POST /api/refresh", srv.handlerRefresh)
 	mux.HandleFunc("POST /api/loglevel", srv.handlerLogLevel)
 
-	if err := srv.c.Refresh(); err != nil {
+	if err := srv.c.FetchDB(); err != nil {
 		slog.Error("failed to refesh db files", "err", err)
 		//nolint:errcheck //already exiting
 		_ = c.Close() // best effort cleanup on exit
