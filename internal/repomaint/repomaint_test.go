@@ -1,0 +1,70 @@
+package repomaint
+
+import (
+	"io"
+	"os"
+	"path/filepath"
+	"testing"
+
+	"github.com/ewpt3ch/pkgstash/internal/cache"
+	"github.com/stretchr/testify/assert"
+)
+
+// create a CacheClient to mock cache.Fetch and cache.FetchDB to fulfill
+// expected interface in RepoSync struct
+type mockCache struct {
+	fetched []string
+}
+
+func (m *mockCache) FetchDB() error { return nil }
+func (m *mockCache) Fetch(relPath string) (*cache.CacheFile, error) {
+	m.fetched = append(m.fetched, relPath)
+	return nil, nil
+}
+
+func TestSyncMapBuild(t *testing.T) {
+	testFiles := make(map[string]string)
+	testFiles["linux"] = "linux-7.0.9.arch1-1-x86_64.pkg.tar.zst"
+	testFiles["linux-api-headers"] = "linux-api-headers-6.19-1-x86_64.pkg.tar.zst"
+	testFiles["gcc-rust"] = "gcc-rust-16.1.1+r12+g301eb08fa2c5-1-x86_64.pkg.tar.zst"
+
+	t.Run("build map from real db file", func(t *testing.T) {
+		// create test structs
+		c := &mockCache{
+			fetched: make([]string, 5),
+		}
+		rs, err := NewRepoSync(c, t.TempDir(), []string{"core"})
+		if err != nil {
+			t.Fatalf("failed to create RepoMaint: %v", err)
+		}
+		repoPath := filepath.Join(rs.repos[0], "os/x86_64")
+		rs.root.MkdirAll(repoPath, 0750)
+		for _, f := range testFiles {
+			rs.root.WriteFile(filepath.Join(repoPath, f), []byte{}, 0644)
+		}
+		src, err := os.Open(filepath.Join("testdata", "pre.core.db.tar.gz"))
+		if err != nil {
+			t.Fatalf("unable to open src db for copy: %v", err)
+		}
+		defer src.Close()
+		dst, err := rs.root.Create(filepath.Join(repoPath, "core.db.tar.gz"))
+		if err != nil {
+			t.Fatalf("unable to open dst db for copy: %s", err)
+		}
+		defer dst.Close()
+		if _, err := io.Copy(dst, src); err != nil {
+			t.Fatalf("failed to copy db: %v", err)
+		}
+
+		// run tests
+
+		pkgMap, err := rs.createMap(rs.repos[0])
+		if err != nil {
+			t.Fatalf("failed to create map: %v", err)
+		}
+		for key, val := range testFiles {
+			assert.Equal(t, val, pkgMap[key])
+		}
+	})
+
+}
