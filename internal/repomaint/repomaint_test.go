@@ -4,10 +4,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/ewpt3ch/pkgstash/internal/cache"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // create a CacheClient to mock cache.Fetch and cache.FetchDB to fulfill
@@ -20,6 +22,48 @@ func (m *mockCache) FetchDB() error { return nil }
 func (m *mockCache) Fetch(relPath string) (*cache.CacheFile, error) {
 	m.fetched = append(m.fetched, relPath)
 	return nil, nil
+}
+
+func TestParseDesc(t *testing.T) {
+	t.Run("parse good desc file", func(t *testing.T) {
+		r := strings.NewReader("%NAME%\nlinux\n\n\n%FAKEKEY%\nFAKEINFO\n\n%FILENAME%\nlinux-7.0.9\n")
+		pkgName, fileName, err := parseDesc(r)
+		require.NoError(t, err)
+		assert.Equal(t, "linux", pkgName)
+		assert.Equal(t, "linux-7.0.9", fileName)
+	})
+
+	t.Run("parse bad desc file", func(t *testing.T) {
+		r := strings.NewReader("%NAME\nlinux\n\n%FAKEKEY%\nwhat\n")
+		pkgName, fileName, err := parseDesc(r)
+		assert.Error(t, err)
+		assert.Equal(t, "", pkgName)
+		assert.Equal(t, "", fileName)
+	})
+}
+
+func TestCachedFiles(t *testing.T) {
+	testFiles := []string{
+		"linux-x86_64.pkg.tar.zst",
+		"gcc-rust-x86_64.pkg.tar.zst",
+		"linux-api-headers-x86_64.pkg.tar.zst",
+	}
+	c := &mockCache{
+		fetched: make([]string, 5),
+	}
+	rs, err := NewRepoSync(c, t.TempDir(), []string{"core"})
+	if err != nil {
+		t.Fatalf("failed to create RepoMaint: %v", err)
+	}
+	rs.root.MkdirAll("core/os/x86_64", 0750)
+	for _, f := range testFiles {
+		rs.root.WriteFile(filepath.Join("core/os/x86_64", f), []byte{}, 0644)
+	}
+
+	cachedFiles, err := rs.cachedPkgs("core")
+	assert.Contains(t, cachedFiles, "linux")
+	assert.Contains(t, cachedFiles, "gcc-rust")
+	assert.Contains(t, cachedFiles, "linux-api-headers")
 }
 
 func TestSyncMapBuild(t *testing.T) {

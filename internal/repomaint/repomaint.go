@@ -6,6 +6,12 @@ import (
 	"github.com/ewpt3ch/pkgstash/internal/cache"
 )
 
+const (
+	repoArch  = "os/x86_64"
+	dbSuffix  = ".db.tar.gz"
+	pkgSuffix = "-x86_64.pkg.tar.zst"
+)
+
 type CacheClient interface {
 	FetchDB() error
 	Fetch(relpath string) (*cache.CacheFile, error)
