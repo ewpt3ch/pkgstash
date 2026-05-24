@@ -15,7 +15,7 @@ import (
 
 func (r *RepoSync) buildMap(repo string) (map[string]string, error) {
 	// create slice all filenames in repo
-	pkgs, err := r.cachedPkgs(repo)
+	pkgs, err := r.getCachedPkgs(repo)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,50 @@ func (r *RepoSync) buildMap(repo string) (map[string]string, error) {
 	return pkgMap, nil
 }
 
-func (r *RepoSync) cachedPkgs(repo string) ([]string, error) {
+func (r *RepoSync) updatablePkgs(repo string, pkgs map[string]string) ([]string, error) {
+
+	// open db file
+	db, fr, gzr, err := r.openDb(repo)
+	if err != nil {
+		return nil, err
+	}
+	defer fr.Close()
+	defer gzr.Close()
+
+	files := []string{}
+	// for entry in db
+	for {
+		hdr, err := db.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if filepath.Base(hdr.Name) != "desc" {
+			continue
+		}
+		pkgName, currentFileName, err := parseDesc(db)
+		if err != nil {
+			slog.Warn("failed to parse desc file", "pkg", hdr.Name, "err", err)
+			continue
+		}
+		// check if pkg is cached, continue if not
+		cachedFileName, ok := pkgs[pkgName]
+		if !ok {
+			continue
+		}
+		// pkg is cached, check if needs update
+		if cachedFileName == currentFileName {
+			continue
+		}
+		files = append(files, currentFileName)
+
+	}
+	return files, nil
+}
+
+func (r *RepoSync) getCachedPkgs(repo string) ([]string, error) {
 	repoPath := filepath.Join(repo, repoArch)
 	f, err := r.root.Open(repoPath)
 	if err != nil {

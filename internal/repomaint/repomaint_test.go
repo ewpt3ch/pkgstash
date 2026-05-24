@@ -61,13 +61,13 @@ func TestCachedFiles(t *testing.T) {
 		rs.root.WriteFile(filepath.Join(repoPath, f), []byte{}, 0644)
 	}
 
-	cachedFiles, err := rs.cachedPkgs("core")
+	cachedFiles, err := rs.getCachedPkgs("core")
 	assert.Contains(t, cachedFiles, "linux")
 	assert.Contains(t, cachedFiles, "gcc-rust")
 	assert.Contains(t, cachedFiles, "linux-api-headers")
 }
 
-func TestSyncMapBuild(t *testing.T) {
+func TestBuildMap(t *testing.T) {
 	testFiles := make(map[string]string)
 	testFiles["linux"] = "linux-7.0.9.arch1-1-x86_64.pkg.tar.zst"
 	testFiles["linux-api-headers"] = "linux-api-headers-6.19-1-x86_64.pkg.tar.zst"
@@ -111,5 +111,48 @@ func TestSyncMapBuild(t *testing.T) {
 			assert.Equal(t, val, pkgMap[key])
 		}
 	})
+
+}
+
+func TestUpdatablePkgs(t *testing.T) {
+	repo := "core"
+	testMap := make(map[string]string)
+	testMap["linux"] = "linux-7.0.9.arch1-1"
+	testMap["linux-api-headers"] = "linux-a"
+	testMap["gcc-rust"] = "gcc-rust-16.1.1+r12+g301eb08fa2c5-1-x86_64.pkg.tar.zst"
+	expectedFileName1 := "linux-7.0.9.arch1-1-x86_64.pkg.tar.zst"
+	expectedFileName2 := "linux-api-headers-6.19-1-x86_64.pkg.tar.zst"
+	unexpectedFileName := "gcc-rust-16.1.1+r12+g301eb08fa2c5-1-x86_64.pkg.tar.zst"
+
+	// create test structs
+	c := &mockCache{
+		fetched: make([]string, 5),
+	}
+	rs, err := NewRepoSync(c, t.TempDir(), []string{"core"})
+	if err != nil {
+		t.Fatalf("failed to create RepoMaint: %v", err)
+	}
+	repoPath := filepath.Join(rs.repos[0], repoArch)
+	rs.root.MkdirAll(repoPath, 0750)
+
+	src, err := os.Open(filepath.Join("testdata", "pre.core.db.tar.gz"))
+	if err != nil {
+		t.Fatalf("unable to open src db for copy: %v", err)
+	}
+	defer src.Close()
+	dst, err := rs.root.Create(filepath.Join(repoPath, "core.db.tar.gz"))
+	if err != nil {
+		t.Fatalf("unable to open dst db for copy: %s", err)
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, src); err != nil {
+		t.Fatalf("failed to copy db: %v", err)
+	}
+
+	files, err := rs.updatablePkgs(repo, testMap)
+	require.NoError(t, err)
+	assert.Contains(t, files, expectedFileName1)
+	assert.Contains(t, files, expectedFileName2)
+	assert.NotContains(t, files, unexpectedFileName)
 
 }
