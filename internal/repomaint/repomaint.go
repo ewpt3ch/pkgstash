@@ -44,8 +44,8 @@ func (r *RepoSync) Sync() error {
 		// create map of pkgname to filenames from current db
 		cachedPkgs, err := r.buildMap(repo)
 		if err != nil {
+			// pass through to cover initialization of repos
 			slog.Warn("failed to read current db", "err", err)
-			return err
 		}
 
 		// call cache db fetch

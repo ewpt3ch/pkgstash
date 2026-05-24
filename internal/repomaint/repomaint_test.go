@@ -15,13 +15,37 @@ import (
 // create a CacheClient to mock cache.Fetch and cache.FetchDB to fulfill
 // expected interface in RepoSync struct
 type mockCache struct {
-	fetched []string
+	fetched       []string
+	fetchDBCalled bool
 }
 
-func (m *mockCache) FetchDB() error { return nil }
+func (m *mockCache) FetchDB() error {
+	m.fetchDBCalled = true
+	return nil
+}
 func (m *mockCache) Fetch(relPath string) (*cache.CacheFile, error) {
 	m.fetched = append(m.fetched, relPath)
 	return nil, nil
+}
+
+func newTestRepo(t *testing.T, repoPath string, rs *RepoSync) {
+	// create newTestRepo with db file
+	t.Helper()
+
+	src, err := os.Open(filepath.Join("testdata", "pre.core.db.tar.gz"))
+	if err != nil {
+		t.Fatalf("unable to open src db for copy: %v", err)
+	}
+	defer src.Close()
+	rs.root.MkdirAll(repoPath, 0750)
+	dst, err := rs.root.Create(filepath.Join(repoPath, "core.db.tar.gz"))
+	if err != nil {
+		t.Fatalf("unable to open dst db for copy: %s", err)
+	}
+	defer dst.Close()
+	if _, err := io.Copy(dst, src); err != nil {
+		t.Fatalf("failed to copy db: %v", err)
+	}
 }
 
 func TestParseDesc(t *testing.T) {
@@ -56,7 +80,7 @@ func TestCachedFiles(t *testing.T) {
 		t.Fatalf("failed to create RepoMaint: %v", err)
 	}
 	repoPath := filepath.Join("core", repoArch)
-	rs.root.MkdirAll(repoPath, 0750)
+	newTestRepo(t, repoPath, rs)
 	for _, f := range testFiles {
 		rs.root.WriteFile(filepath.Join(repoPath, f), []byte{}, 0644)
 	}
@@ -84,22 +108,9 @@ func TestBuildMap(t *testing.T) {
 			t.Fatalf("failed to create RepoMaint: %v", err)
 		}
 		repoPath := filepath.Join(rs.repos[0], repoArch)
-		rs.root.MkdirAll(repoPath, 0750)
+		newTestRepo(t, repoPath, rs)
 		for _, f := range testFiles {
 			rs.root.WriteFile(filepath.Join(repoPath, f), []byte{}, 0644)
-		}
-		src, err := os.Open(filepath.Join("testdata", "pre.core.db.tar.gz"))
-		if err != nil {
-			t.Fatalf("unable to open src db for copy: %v", err)
-		}
-		defer src.Close()
-		dst, err := rs.root.Create(filepath.Join(repoPath, "core.db.tar.gz"))
-		if err != nil {
-			t.Fatalf("unable to open dst db for copy: %s", err)
-		}
-		defer dst.Close()
-		if _, err := io.Copy(dst, src); err != nil {
-			t.Fatalf("failed to copy db: %v", err)
 		}
 
 		// run tests
@@ -134,26 +145,31 @@ func TestUpdatablePkgs(t *testing.T) {
 		t.Fatalf("failed to create RepoMaint: %v", err)
 	}
 	repoPath := filepath.Join(rs.repos[0], repoArch)
-	rs.root.MkdirAll(repoPath, 0750)
-
-	src, err := os.Open(filepath.Join("testdata", "pre.core.db.tar.gz"))
-	if err != nil {
-		t.Fatalf("unable to open src db for copy: %v", err)
-	}
-	defer src.Close()
-	dst, err := rs.root.Create(filepath.Join(repoPath, "core.db.tar.gz"))
-	if err != nil {
-		t.Fatalf("unable to open dst db for copy: %s", err)
-	}
-	defer dst.Close()
-	if _, err := io.Copy(dst, src); err != nil {
-		t.Fatalf("failed to copy db: %v", err)
-	}
+	newTestRepo(t, repoPath, rs)
 
 	files, err := rs.updatablePkgs(repo, testMap)
 	require.NoError(t, err)
 	assert.Contains(t, files, expectedFileName1)
 	assert.Contains(t, files, expectedFileName2)
 	assert.NotContains(t, files, unexpectedFileName)
+
+}
+
+func TestSyncNoDB(t *testing.T) {
+	// can't create db and test initialization behavior without
+	// going out of scope. We test fall through to FetchDB and
+	// second attempt to read db file fails
+	c := &mockCache{
+		fetched: make([]string, 5),
+	}
+	rs, err := NewRepoSync(c, t.TempDir(), []string{"core"})
+	if err != nil {
+		t.Fatalf("failed to create RepoSync: %v", err)
+	}
+
+	err = rs.Sync()
+	// err here is correct behavior as no db exists
+	assert.Error(t, err)
+	assert.True(t, c.fetchDBCalled)
 
 }

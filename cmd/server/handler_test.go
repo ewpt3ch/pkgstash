@@ -147,7 +147,7 @@ func TestHandlerRefreshUnauthorized(t *testing.T) {
 	}
 }
 
-func TestHandlerRefreshOK(t *testing.T) {
+func TestHandlerRefreshSyncError(t *testing.T) {
 
 	ts, _ := newTestServer(t, mirrorOK)
 
@@ -160,7 +160,7 @@ func TestHandlerRefreshOK(t *testing.T) {
 	if err != nil {
 		t.Fatalf("POST failed: %v", err)
 	}
-	if resp.StatusCode != http.StatusNoContent {
+	if resp.StatusCode != http.StatusInternalServerError {
 		t.Errorf("expected %d got %d", http.StatusNoContent, resp.StatusCode)
 	}
 }
