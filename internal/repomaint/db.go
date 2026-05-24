@@ -25,7 +25,9 @@ func (r *RepoSync) buildMap(repo string) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	//nolint:errcheck
 	defer fr.Close()
+	//nolint:errcheck
 	defer gzr.Close()
 
 	// for entry in db
@@ -63,7 +65,9 @@ func (r *RepoSync) updatablePkgs(repo string, pkgs map[string]string) ([]string,
 	if err != nil {
 		return nil, err
 	}
+	//nolint:errcheck
 	defer fr.Close()
+	//nolint:errcheck
 	defer gzr.Close()
 
 	files := []string{}
@@ -128,7 +132,9 @@ func (r *RepoSync) openDb(repo string) (*tar.Reader, *os.File, *gzip.Reader, err
 	}
 	gr, err := gzip.NewReader(f)
 	if err != nil {
-		f.Close()
+		if err := f.Close(); err != nil {
+			slog.Warn("failed to close gzip reader", "err", err)
+		}
 		return nil, nil, nil, err
 	}
 	tr := tar.NewReader(gr)

@@ -62,6 +62,7 @@ func TestCachedFiles(t *testing.T) {
 	}
 
 	cachedFiles, err := rs.getCachedPkgs("core")
+	require.NoError(t, err)
 	assert.Contains(t, cachedFiles, "linux")
 	assert.Contains(t, cachedFiles, "gcc-rust")
 	assert.Contains(t, cachedFiles, "linux-api-headers")
