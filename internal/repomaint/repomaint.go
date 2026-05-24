@@ -1,6 +1,7 @@
 package repomaint
 
 import (
+	"log/slog"
 	"os"
 
 	"github.com/ewpt3ch/pkgstash/internal/cache"
@@ -37,13 +38,20 @@ func NewRepoSync(c CacheClient, path string, repos []string) (*RepoSync, error) 
 }
 
 func (r *RepoSync) Sync() error {
-	// create map of pkgname to filenames from current db
-	// call cache db fetch
-	if err := r.c.FetchDB(); err != nil {
-		return err
+
+	for _, repo := range r.repos {
+		// create map of pkgname to filenames from current db
+		cachedPkgs, err := r.buildMap(repo)
+		slog.Warn("failed to read current db", "err", err)
+
+		// call cache db fetch
+		if err := r.c.FetchDB(); err != nil {
+			return err
+		}
+
 	}
-	// create map from pkgnames in new db
 	// compare and fetch
+
 	// call cache cleanup
 	return nil
 }

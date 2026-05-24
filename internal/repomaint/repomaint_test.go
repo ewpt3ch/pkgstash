@@ -55,9 +55,10 @@ func TestCachedFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create RepoMaint: %v", err)
 	}
-	rs.root.MkdirAll("core/os/x86_64", 0750)
+	repoPath := filepath.Join("core", repoArch)
+	rs.root.MkdirAll(repoPath, 0750)
 	for _, f := range testFiles {
-		rs.root.WriteFile(filepath.Join("core/os/x86_64", f), []byte{}, 0644)
+		rs.root.WriteFile(filepath.Join(repoPath, f), []byte{}, 0644)
 	}
 
 	cachedFiles, err := rs.cachedPkgs("core")
@@ -81,7 +82,7 @@ func TestSyncMapBuild(t *testing.T) {
 		if err != nil {
 			t.Fatalf("failed to create RepoMaint: %v", err)
 		}
-		repoPath := filepath.Join(rs.repos[0], "os/x86_64")
+		repoPath := filepath.Join(rs.repos[0], repoArch)
 		rs.root.MkdirAll(repoPath, 0750)
 		for _, f := range testFiles {
 			rs.root.WriteFile(filepath.Join(repoPath, f), []byte{}, 0644)
@@ -102,7 +103,7 @@ func TestSyncMapBuild(t *testing.T) {
 
 		// run tests
 
-		pkgMap, err := rs.createMap(rs.repos[0])
+		pkgMap, err := rs.buildMap(rs.repos[0])
 		if err != nil {
 			t.Fatalf("failed to create map: %v", err)
 		}
