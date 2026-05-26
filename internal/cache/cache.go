@@ -19,7 +19,6 @@ type Cache struct {
 	cfg        CacheConfig
 	cr         *os.Root
 	mirrorIdx  atomic.Uint64
-	refreshMu  sync.Mutex
 	client     http.Client
 	inFlight   map[string]*inFlight
 	inFlightMu sync.Mutex
