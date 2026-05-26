@@ -19,7 +19,7 @@ type mockCache struct {
 	fetchDBCalled bool
 }
 
-func (m *mockCache) FetchDB() error {
+func (m *mockCache) FetchDB(repo string) error {
 	m.fetchDBCalled = true
 	return nil
 }

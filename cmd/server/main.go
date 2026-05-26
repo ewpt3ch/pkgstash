@@ -77,11 +77,13 @@ func main() {
 	mux.HandleFunc("POST /api/refresh", srv.handlerRefresh)
 	mux.HandleFunc("POST /api/loglevel", srv.handlerLogLevel)
 
-	if err := srv.c.FetchDB(); err != nil {
-		slog.Error("failed to refesh db files", "err", err)
-		//nolint:errcheck //already exiting
-		_ = c.Close() // best effort cleanup on exit
-		os.Exit(1)
+	for _, repo := range cfg.MirroredRepos {
+		if err := srv.c.FetchDB(repo); err != nil {
+			slog.Error("failed to refesh db file", "repo", repo, "err", err)
+			//nolint:errcheck //already exiting
+			_ = c.Close() // best effort cleanup on exit
+			os.Exit(1)
+		}
 	}
 
 	httpServe := &http.Server{

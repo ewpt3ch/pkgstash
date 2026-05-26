@@ -16,7 +16,7 @@ const (
 )
 
 type CacheClient interface {
-	FetchDB() error
+	FetchDB(repo string) error
 	Fetch(relpath string) (*cache.CacheFile, error)
 }
 
@@ -53,7 +53,7 @@ func (r *RepoSync) Sync() error {
 
 		// call cache db fetch
 		slog.Info("refreshing databases")
-		if err := r.c.FetchDB(); err != nil {
+		if err := r.c.FetchDB(repo); err != nil {
 			return err
 		}
 
