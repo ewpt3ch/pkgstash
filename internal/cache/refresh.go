@@ -29,6 +29,7 @@ func (c *Cache) FetchDB(repo string) error {
 		slog.Info("fetch returned", "url", url, "status", resp.StatusCode)
 		return &UpstreamError{StatusCode: resp.StatusCode}
 	}
+	//nolint:errcheck //best effort
 	defer resp.Body.Close()
 
 	tmpPath := dbPath + ".tmp"
@@ -38,17 +39,25 @@ func (c *Cache) FetchDB(repo string) error {
 	}
 
 	if _, err := io.Copy(tmpFile, resp.Body); err != nil {
-		tmpFile.Close()
-		c.cr.Remove(tmpPath)
+		if err := tmpFile.Close(); err != nil {
+			slog.Error("failed to close file", "file", tmpPath, "err", err)
+		}
+		if err := c.cr.Remove(tmpPath); err != nil {
+			slog.Error("failed to remove file", "file", tmpPath, "err", err)
+		}
 		return err
 	}
 
 	if err := tmpFile.Close(); err != nil {
-		c.cr.Remove(tmpPath)
+		if err := c.cr.Remove(tmpPath); err != nil {
+			slog.Error("failed to remove file", "file", tmpPath, "err", err)
+		}
 		return err
 	}
 	if err := c.cr.Rename(tmpPath, dbPath); err != nil {
-		c.cr.Remove(tmpPath)
+		if err := c.cr.Remove(tmpPath); err != nil {
+			slog.Error("failed to remove file", "file", tmpPath, "err", err)
+		}
 		slog.Error("failed to move tmpfile to permanent file", "file", tmpFile, "err", err)
 		return err
 	}
