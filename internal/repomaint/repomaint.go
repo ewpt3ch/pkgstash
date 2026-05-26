@@ -43,6 +43,7 @@ func NewRepoSync(c CacheClient, path string, repos []string) (*RepoSync, error) 
 
 func (r *RepoSync) Sync() error {
 	if !r.syncMu.TryLock() {
+		slog.Info("sync already in progress, skipping")
 		return nil
 	}
 	defer r.syncMu.Unlock()
