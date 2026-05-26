@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/ewpt3ch/pkgstash/internal/cache"
 )
@@ -21,9 +22,10 @@ type CacheClient interface {
 }
 
 type RepoSync struct {
-	c     CacheClient
-	root  *os.Root
-	repos []string
+	c      CacheClient
+	root   *os.Root
+	repos  []string
+	syncMu sync.Mutex
 }
 
 func NewRepoSync(c CacheClient, path string, repos []string) (*RepoSync, error) {
@@ -40,6 +42,10 @@ func NewRepoSync(c CacheClient, path string, repos []string) (*RepoSync, error) 
 }
 
 func (r *RepoSync) Sync() error {
+	if !r.syncMu.TryLock() {
+		return nil
+	}
+	defer r.syncMu.Unlock()
 
 	for _, repo := range r.repos {
 		// create map of pkgname to filenames from current db
