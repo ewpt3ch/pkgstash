@@ -79,6 +79,9 @@ func (c *Cache) getCachedFiles() (int64, []fileEntry, error) {
 	for _, repo := range c.cfg.mirroredRepos {
 		relPath := filepath.Join(repo, "os/x86_64")
 		f, err := c.cr.Open(relPath)
+		if err != nil {
+			return 0, nil, err
+		}
 		files, err := f.ReadDir(-1)
 		if err != nil {
 			return 0, nil, err
