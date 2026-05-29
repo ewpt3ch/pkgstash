@@ -19,6 +19,7 @@ const (
 type CacheClient interface {
 	FetchDB(repo string) error
 	Fetch(relpath string) (*cache.CacheFile, error)
+	Clean() error
 }
 
 type RepoSync struct {
@@ -86,6 +87,7 @@ func (r *RepoSync) Sync() error {
 		slog.Info("finished pkg update")
 
 		// call cache cleanup
+		err = r.c.Clean()
 	}
 	return nil
 }
