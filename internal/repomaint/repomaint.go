@@ -86,8 +86,12 @@ func (r *RepoSync) Sync() error {
 		}
 		slog.Info("finished pkg update")
 
-		// call cache cleanup
-		err = r.c.Clean()
 	}
+	// call cache cleanup
+	if err := r.c.Clean(); err != nil {
+		slog.Error("clean cache failed", "err", err)
+		return err
+	}
+
 	return nil
 }

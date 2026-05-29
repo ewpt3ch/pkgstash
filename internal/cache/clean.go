@@ -65,7 +65,7 @@ func (c *Cache) Clean() error {
 		rsize += f.size
 		i++
 	}
-	slog.Info("evicted aged out pkgs", "num", i, "size", humanize.Bytes(uint64(rsize)))
+	slog.Info("evicted pkgs over size limit", "num", i, "size", humanize.Bytes(uint64(rsize)))
 
 	return nil
 }
