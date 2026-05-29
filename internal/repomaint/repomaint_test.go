@@ -17,7 +17,8 @@ import (
 type mockCache struct {
 	fetched       []string
 	fetchDBCalled bool
-	clean         error
+	//nolint:unused // required for interface
+	clean error
 }
 
 func (m *mockCache) FetchDB(repo string) error {

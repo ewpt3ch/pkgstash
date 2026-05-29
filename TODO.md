@@ -1,5 +1,3 @@
-- More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)
-- clean cache of old files
 - Deployment
     - automated changelog publishing
     - ci check golangci-lint docs
@@ -11,6 +9,8 @@
 - Build server/tool
 - Think about: arch doesn't like partial upgrades, round robin fetching the db files might be an issue
 - Add chi for mux
+- ~clean cache of old files~
+- ~More complete sync(refresh packages on schedule with db, prefetch updates to pkgs we already have)~
 - ~implement streaming~
     - ~implementation~
     - ~refactor cache tests to match new interface using testify~

@@ -30,21 +30,18 @@ start with the included systemd service
 
 ## Usage
 
-Set your pacman mirrorlist to point at your server and use pacman like Normal. Currently cache misses are not streamed to the client until the server has the whole file, workaround by turning off pacmans timeout.
-
+Set your pacman mirrorlist to point at your server and use pacman like Normal. Update mirror urls, mirrored repos in /etc/pkgstash/pkgstash.toml to suit your needs.
 
 ### Technical details
 
-1. Go as the language. It has most of the tools necessary for a http server ins the standard library and it's performant.
-2. Singleflight to prevent 2 clients from causing the server to fetch the same package more than once.
+1. Go as the language. It has most of the tools necessary for a http server ins the standard library and it's performant
+2. Initial usage streams downloads to multiple clients concurrently from one upstream request
 3. Pkgs are written atomically to prevent serving partial files
-4. Use multiple mirrors for redundancy and spread the load out.
-5. Refresh the remote db files on a schedule to enable prefetching of cached pkgs.
+4. Use multiple mirrors for redundancy and spread the load out
+5. Sync the cache on a schedule, includes refreshing databases, prefetching cached pkgs, and cleaning out old pkgs
 
 ### Roadmap
 
-- Prefetch and cache cleanup
-- Streaming on cache misses
 - cli admin tool
 - Custom repo
 - Build server
