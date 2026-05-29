@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ewpt3ch/pkgstash/internal/cache"
 	"github.com/ewpt3ch/pkgstash/internal/repomaint"
@@ -39,8 +40,10 @@ func newTestServer(t *testing.T, mirrorHandler http.HandlerFunc) (*httptest.Serv
 
 	croot := t.TempDir()
 	mrepos := []string{"core"}
+	maxCacheSize := int64(1 * 1024 * 1024 * 1024)
+	maxCacheAge := time.Duration(time.Hour)
 
-	c, err := cache.NewCache(croot, []string{mirror.URL + "/"}, mrepos)
+	c, err := cache.NewCache(croot, []string{mirror.URL + "/"}, mrepos, maxCacheSize, maxCacheAge)
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)
 	}

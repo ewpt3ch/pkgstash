@@ -30,7 +30,9 @@ func newTestCache(t *testing.T, mirrorURLs []string) *Cache {
 	// set slog to debug
 	slog.SetLogLoggerLevel(slog.LevelDebug)
 	mirroredRepos := []string{"core", "extra"}
-	c, err := NewCache(t.TempDir(), mirrorURLs, mirroredRepos)
+	maxSize := int64(1024)
+	maxAge := time.Duration(10 * time.Second)
+	c, err := NewCache(t.TempDir(), mirrorURLs, mirroredRepos, maxSize, maxAge)
 	if err != nil {
 		t.Fatalf("failed to create cache: %v", err)
 	}

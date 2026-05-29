@@ -53,7 +53,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	c, err := cache.NewCache(cfg.CacheRoot, cfg.MirrorURLs, cfg.MirroredRepos)
+	c, err := cache.NewCache(cfg.CacheRoot, cfg.MirrorURLs, cfg.MirroredRepos, cfg.MaxCacheSize, cfg.MaxCacheAge)
 	if err != nil {
 		slog.Error("failed to create cache", "err", err)
 		os.Exit(1)

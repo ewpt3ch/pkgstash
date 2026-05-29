@@ -49,6 +49,8 @@ func defaultCfgMap() map[string]string {
 		"mirrored_repos": `["core", "extra"]`,
 		"port":           `"8090"`,
 		"PKGSTASH_TOKEN": "testtoken",
+		"max_cache_size": `"1GB"`,
+		"max_cache_age":  `"1h"`,
 	}
 }
 

@@ -3,14 +3,18 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
 
 type rawConfig struct {
 	Config
-	EnvFile string `toml:"env_file"`
+	EnvFile        string `toml:"env_file"`
+	MaxCacheSize   string `toml:"max_cache_size"`
+	MaxCacheAgeStr string `toml:"max_cache_age"`
 }
 
 type Config struct {
@@ -19,18 +23,9 @@ type Config struct {
 	MirroredRepos []string `toml:"mirrored_repos"`
 	Port          string   `toml:"port"`
 	Token         string
+	MaxCacheSize  int64
+	MaxCacheAge   time.Duration
 }
-
-/* Function kept for reference for future logic
-func NewConfig() *Config {
-	return &Config{
-		CacheRoot: "/home/ewpt3ch/dev/pacman-cache-server/tmprepo",
-		MirrorURLs: "https://us.mirrors.cicku.me/archlinux/",
-		Port:      "8090",
-		Auth:      AuthConfig{Token: "FakeToken"},
-	}
-}
-*/
 
 func ReadConfig(path string) (*Config, error) {
 
@@ -45,6 +40,21 @@ func ReadConfig(path string) (*Config, error) {
 	err = cfg.loadToken(rawcfg.EnvFile)
 	if err != nil {
 		return nil, fmt.Errorf("error getting token: %v", err)
+	}
+
+	if rawcfg.MaxCacheSize == "" {
+		return nil, fmt.Errorf("max_cache_size must be set")
+	}
+	sizeBytes, err := strconv.ParseInt(strings.TrimSuffix(rawcfg.MaxCacheSize, "GB"), 10, 64)
+	sizeBytes = sizeBytes * 1024 * 1024 * 1024
+	if err != nil {
+		return nil, fmt.Errorf("invalid cache size string")
+	}
+	cfg.MaxCacheSize = sizeBytes
+
+	cfg.MaxCacheAge, err = time.ParseDuration(rawcfg.MaxCacheAgeStr)
+	if err != nil {
+		return nil, fmt.Errorf("error getting max_cache_age: %v", err)
 	}
 
 	if err = cfg.validate(); err != nil {

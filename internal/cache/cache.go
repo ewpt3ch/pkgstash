@@ -13,7 +13,10 @@ import (
 	"time"
 )
 
-const userAgent = "pacman/7.1.0 (Linux x86_64) libalpm/16.0.1"
+const (
+	userAgent = "pacman/7.1.0 (Linux x86_64) libalpm/16.0.1"
+	repoArch  = "os/x86_64"
+)
 
 type Cache struct {
 	cfg        CacheConfig
@@ -30,6 +33,8 @@ type CacheConfig struct {
 	DialTimeout           time.Duration
 	ResponseHeaderTimeout time.Duration
 	ClientTimeout         time.Duration
+	MaxCacheSize          int64
+	MaxCacheAge           time.Duration
 }
 
 type inFlight struct {
@@ -46,13 +51,15 @@ type CacheFile struct {
 	Filename string
 }
 
-func NewCache(cacheRoot string, mirrorURLs []string, mirroredRepos []string) (*Cache, error) {
+func NewCache(cacheRoot string, mirrorURLs []string, mirroredRepos []string, maxCacheSize int64, maxCacheAge time.Duration) (*Cache, error) {
 	cfg := CacheConfig{
 		mirrorURLs:            mirrorURLs,
 		mirroredRepos:         mirroredRepos,
 		DialTimeout:           5 * time.Second,
 		ResponseHeaderTimeout: 10 * time.Second,
 		ClientTimeout:         0 * time.Second,
+		MaxCacheSize:          maxCacheSize,
+		MaxCacheAge:           maxCacheAge,
 	}
 
 	transport := &http.Transport{

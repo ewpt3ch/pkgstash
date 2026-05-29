@@ -9,3 +9,7 @@ mirror_urls  = [
 # or pacman docs for more info <core, extra, multilib>
 mirrored_repos = ["core", "extra"]
 port        = "8090"
+# cache eviction parameters, size expressed in <x>GB, 0 means no limit
+# time in a duration in hours: <x>h, defaults to 1 year: 8760h
+max_cache_size = "10GB"
+max_cache_age = "8760h"
