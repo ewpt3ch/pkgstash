@@ -17,6 +17,7 @@ import (
 type mockCache struct {
 	fetched       []string
 	fetchDBCalled bool
+	clean         error
 }
 
 func (m *mockCache) FetchDB(repo string) error {
@@ -26,6 +27,9 @@ func (m *mockCache) FetchDB(repo string) error {
 func (m *mockCache) Fetch(relPath string) (*cache.CacheFile, error) {
 	m.fetched = append(m.fetched, relPath)
 	return nil, nil
+}
+func (m *mockCache) Clean() error {
+	return nil
 }
 
 func newTestRepo(t *testing.T, repoPath string, rs *RepoSync) {
