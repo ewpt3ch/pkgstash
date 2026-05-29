@@ -70,7 +70,7 @@ func TestParseDesc(t *testing.T) {
 	})
 }
 
-func TestCachedFiles(t *testing.T) {
+func TestGetCachedFiles(t *testing.T) {
 	testFiles := []string{
 		"linux-x86_64.pkg.tar.zst",
 		"gcc-rust-x86_64.pkg.tar.zst",
@@ -91,9 +91,9 @@ func TestCachedFiles(t *testing.T) {
 
 	cachedFiles, err := rs.getCachedPkgs("core")
 	require.NoError(t, err)
-	assert.Contains(t, cachedFiles, "linux")
-	assert.Contains(t, cachedFiles, "gcc-rust")
-	assert.Contains(t, cachedFiles, "linux-api-headers")
+	assert.Contains(t, cachedFiles, "linux-x86_64.pkg.tar.zst")
+	assert.Contains(t, cachedFiles, "gcc-rust-x86_64.pkg.tar.zst")
+	assert.Contains(t, cachedFiles, "linux-api-headers-x86_64.pkg.tar.zst")
 }
 
 func TestBuildMap(t *testing.T) {

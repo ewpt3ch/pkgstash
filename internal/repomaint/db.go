@@ -10,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 )
 
 func (r *RepoSync) buildMap(repo string) (map[string]string, error) {
@@ -43,12 +42,12 @@ func (r *RepoSync) buildMap(repo string) (map[string]string, error) {
 		if filepath.Base(hdr.Name) != "desc" {
 			continue
 		}
-		if !slices.Contains(pkgs, filepath.Dir(hdr.Name)) {
-			continue
-		}
 		pkgName, pkgFile, err := parseDesc(db)
 		if err != nil {
 			slog.Warn("failed to parse desc file", "pkg", hdr.Name, "err", err)
+			continue
+		}
+		if !slices.Contains(pkgs, pkgFile) {
 			continue
 		}
 
@@ -115,8 +114,7 @@ func (r *RepoSync) getCachedPkgs(repo string) ([]string, error) {
 	}
 	var pkgs []string
 	for _, f := range files {
-		pkg := strings.TrimSuffix(f.Name(), pkgSuffix)
-		pkgs = append(pkgs, pkg)
+		pkgs = append(pkgs, f.Name())
 	}
 
 	return pkgs, nil

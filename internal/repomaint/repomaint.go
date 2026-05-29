@@ -11,9 +11,8 @@ import (
 )
 
 const (
-	repoArch  = "os/x86_64"
-	dbSuffix  = ".db.tar.gz"
-	pkgSuffix = "-x86_64.pkg.tar.zst"
+	repoArch = "os/x86_64"
+	dbSuffix = ".db.tar.gz"
 )
 
 type CacheClient interface {
