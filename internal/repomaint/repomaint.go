@@ -57,7 +57,7 @@ func (r *RepoSync) Sync() error {
 			// pass through to cover initialization of repos
 			slog.Warn("failed to read current db", "err", err)
 		}
-		fmt.Printf("cached pkgs: %v", cachedPkgs)
+		fmt.Printf("cached pkgs: %v\n", cachedPkgs)
 
 		// call cache db fetch
 		slog.Info("refreshing databases")
@@ -73,7 +73,7 @@ func (r *RepoSync) Sync() error {
 			slog.Warn("failed to get updatable pkgs list", "err", err)
 			return err
 		}
-		fmt.Printf("updatable pkgs: %v", pkgsToUpdate)
+		fmt.Printf("updatable pkgs: %v\n", pkgsToUpdate)
 
 		for _, fileName := range pkgsToUpdate {
 			slog.Debug("fetching pkgs", "pkg", fileName)
