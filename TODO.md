@@ -1,3 +1,5 @@
+- Bug: add .sig to prefetch otherwise we can end up with 404's and unable to update.
+
 - Deployment
     - automated changelog publishing
     - ci check golangci-lint docs

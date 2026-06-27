@@ -97,6 +97,7 @@ func (r *RepoSync) updatablePkgs(repo string, pkgs map[string]string) ([]string,
 			continue
 		}
 		files = append(files, currentFileName)
+		files = append(files, currentFileName+".sig")
 
 	}
 	return files, nil
